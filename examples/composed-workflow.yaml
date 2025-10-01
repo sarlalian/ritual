@@ -1,0 +1,296 @@
+name: Composed CI/CD Pipeline
+description: Complete CI/CD pipeline using imported workflow libraries
+version: "1.0"
+
+# Import reusable workflow libraries
+imports:
+  - "library/common-tasks.yaml"
+  - "library/nodejs-tasks.yaml"
+
+environment:
+  NODE_ENV: "production"
+  DEPLOY_ENV: "{{ .env.TARGET_ENV | default \"staging\" }}"
+
+vars:
+  project_name: "MyWebApp"
+  version: "{{ env \"BUILD_VERSION\" | default \"1.0.0\" }}"
+  build_timestamp: "{{ now | date \"20060102-150405\" }}"
+
+tasks:
+  # Phase 1: Initial Setup (using imported tasks)
+  - id: start_pipeline
+    name: Start CI/CD Pipeline
+    type: command
+    command: |
+      echo "🚀 Starting CI/CD Pipeline"
+      echo "=========================="
+      echo "Project: {{ .vars.project_name }}"
+      echo "Version: {{ .vars.version }}"
+      echo "Environment: {{ .env.DEPLOY_ENV }}"
+      echo "Timestamp: {{ .vars.build_timestamp }}"
+
+  # Phase 2: Code Quality and Testing (sequential with imported tasks)
+  - id: check_system
+    name: System Prerequisites Check
+    type: command
+    command: "echo 'System check will use imported task results'"
+    depends_on: [start_pipeline]
+
+  - id: repo_status
+    name: Repository Status Check
+    type: command
+    command: "echo 'Repository status will use imported task results'"
+    depends_on: [start_pipeline]
+
+  - id: install_deps
+    name: Install Dependencies
+    type: command
+    command: "echo 'Dependencies installed via imported Node.js tasks'"
+    depends_on: [check_system, repo_status]
+
+  - id: security_audit
+    name: Security Audit
+    type: command
+    command: "echo 'Security audit completed via imported Node.js tasks'"
+    depends_on: [install_deps]
+
+  - id: code_quality
+    name: Code Quality Checks
+    type: command
+    command: |
+      echo "Running code quality checks..."
+      echo "✅ Linting completed"
+      echo "✅ Formatting check completed"
+      echo "✅ Type checking completed"
+    depends_on: [install_deps]
+
+  # Phase 3: Testing (parallel execution)
+  - id: unit_testing
+    name: Unit Test Suite
+    type: command
+    command: "echo 'Unit tests completed via imported Node.js tasks'"
+    depends_on: [install_deps]
+
+  - id: integration_testing
+    name: Integration Test Suite
+    type: command
+    command: "echo 'Integration tests completed via imported Node.js tasks'"
+    depends_on: [install_deps]
+
+  - id: test_coverage
+    name: Generate Test Coverage
+    type: command
+    command: |
+      echo "Generating test coverage report..."
+      echo "✅ Coverage report generated: 85%"
+    depends_on: [unit_testing, integration_testing]
+
+  # Phase 4: Build Process
+  - id: build_app
+    name: Build Main Application
+    type: command
+    command: |
+      echo "Building application for {{ .env.NODE_ENV }} environment..."
+      echo "✅ Build completed successfully"
+    depends_on: [code_quality, test_coverage]
+
+  - id: optimize_build
+    name: Optimize Bundle
+    type: command
+    command: |
+      echo "Optimizing bundle size..."
+      echo "✅ Bundle optimized: 2.3MB → 1.8MB"
+    depends_on: [build_app]
+
+  # Phase 5: Security and Health Checks
+  - id: system_health
+    name: System Health Check
+    type: command
+    command: |
+      echo "Running system health check..."
+      echo "✅ System health: All services operational"
+    depends_on: [build_app]
+
+  - id: security_scan
+    name: Security Permissions Check
+    type: command
+    command: |
+      echo "Running security scan..."
+      echo "✅ Security scan: No vulnerabilities found"
+    depends_on: [build_app]
+
+  # Phase 6: Deployment Preparation
+  - id: create_backup
+    name: Create Pre-deployment Backup
+    type: command
+    command: |
+      echo "Creating pre-deployment backup..."
+      echo "✅ Backup created: backup-{{ now | date \"20060102-150405\" }}.tar.gz"
+    depends_on: [optimize_build]
+
+  - id: verify_backup
+    name: Verify Backup Integrity
+    type: command
+    command: |
+      echo "Verifying backup integrity..."
+      echo "✅ Backup verification successful"
+    depends_on: [create_backup]
+
+  - id: prepare_deployment
+    name: Prepare Deployment Package
+    type: compress
+    path: "deploy/{{ .vars.project_name }}-{{ .vars.version }}.tar.gz"
+    state: create
+    format: tar.gz
+    sources:
+      - "build"
+      - "package.json"
+    exclude:
+      - "node_modules"
+      - "src"
+      - "*.log"
+    depends_on: [optimize_build]
+
+  # Phase 7: Deployment (custom tasks)
+  - id: deploy_to_staging
+    name: Deploy to Staging
+    type: command
+    command: |
+      echo "🚢 Deploying {{ .vars.project_name }} v{{ .vars.version }} to staging..."
+
+      # Simulate deployment process
+      echo "Uploading deployment package..."
+      sleep 2
+
+      echo "Updating staging environment..."
+      sleep 1
+
+      echo "Restarting services..."
+      sleep 1
+
+      echo "✅ Staging deployment completed"
+      echo "URL: https://staging.example.com"
+    when: "{{ eq .env.DEPLOY_ENV \"staging\" }}"
+    depends_on: [prepare_deployment, verify_backup]
+
+  - id: deploy_to_production
+    name: Deploy to Production
+    type: command
+    command: |
+      echo "🚀 Deploying {{ .vars.project_name }} v{{ .vars.version }} to production..."
+
+      # Production deployment with more careful steps
+      echo "Creating production backup..."
+      sleep 1
+
+      echo "Rolling deployment to production cluster..."
+      sleep 3
+
+      echo "Running health checks..."
+      sleep 2
+
+      echo "✅ Production deployment completed"
+      echo "URL: https://production.example.com"
+    when: "{{ eq .env.DEPLOY_ENV \"production\" }}"
+    depends_on: [prepare_deployment, verify_backup, system_health, security_scan]
+
+  # Phase 8: Post-deployment Verification
+  - id: post_deploy_health_check
+    name: Post-deployment Health Check
+    type: command
+    command: |
+      echo "Running post-deployment health check..."
+
+      # Simulate health check
+      sleep 2
+
+      if [ "{{ .env.DEPLOY_ENV }}" = "production" ]; then
+        echo "✅ Production health check passed"
+        echo "Response time: 145ms"
+        echo "Error rate: 0.001%"
+      else
+        echo "✅ Staging health check passed"
+        echo "Response time: 180ms"
+        echo "Error rate: 0.1%"
+      fi
+    depends_on: [deploy_to_staging, deploy_to_production]
+
+  - id: update_deployment_log
+    name: Update Deployment Log
+    type: file
+    path: "/var/log/{{ .vars.project_name }}/deployments.log"
+    state: file
+    content: |
+      [{{ now | date "2006-01-02 15:04:05" }}] Deployment Completed
+      ================================================
+      Project: {{ .vars.project_name }}
+      Version: {{ .vars.version }}
+      Environment: {{ .env.DEPLOY_ENV }}
+      Build Timestamp: {{ .vars.build_timestamp }}
+
+      Pipeline Results:
+      - System Check: {{ .tasks.check_system.Status }}
+      - Code Quality: {{ .tasks.code_quality.Status }}
+      - Tests: {{ .tasks.test_coverage.Status }}
+      - Build: {{ .tasks.build_app.Status }}
+      - Security: {{ .tasks.security_scan.Status }}
+      - Deployment: {{ .tasks.post_deploy_health_check.Status }}
+
+      {{ if eq .env.DEPLOY_ENV "production" -}}
+      Production Deployment Notes:
+      - Full security scan completed
+      - System health verified
+      - Rolling deployment strategy used
+      {{- else -}}
+      Staging Deployment Notes:
+      - Standard deployment process
+      - Available for testing
+      {{- end }}
+    mode: "0644"
+    depends_on: [post_deploy_health_check]
+
+  # Phase 9: Notifications and Cleanup
+  - id: send_deployment_notification
+    name: Send Deployment Notification
+    type: command
+    command: |
+      echo "📧 Sending deployment success notification..."
+      echo ""
+      echo "TO: team@example.com"
+      echo "SUBJECT: ✅ {{ .vars.project_name }} v{{ .vars.version }} deployed to {{ .env.DEPLOY_ENV }}"
+      echo ""
+      echo "Deployment completed successfully!"
+      echo "Environment: {{ .env.DEPLOY_ENV }}"
+      echo "Version: {{ .vars.version }}"
+      echo "Build Time: {{ .vars.build_timestamp }}"
+      echo ""
+      echo "Pipeline Summary:"
+      echo "- Build Status: {{ .tasks.build_app.Status }}"
+      echo "- Test Status: {{ .tasks.test_coverage.Status }}"
+      echo "- Deploy Status: {{ .tasks.post_deploy_health_check.Status }}"
+    depends_on: [update_deployment_log]
+    required: false
+
+  - id: cleanup_workspace
+    name: Clean Up Workspace
+    type: command
+    command: |
+      echo "Cleaning up workspace..."
+      echo "✅ Build artifacts cleaned"
+      echo "✅ Temporary files removed"
+    depends_on: [send_deployment_notification]
+    required: false
+
+  - id: final_status
+    name: Pipeline Completion Status
+    type: command
+    command: |
+      echo "🎉 CI/CD Pipeline Completed"
+      echo "==========================="
+      echo "Project: {{ .vars.project_name }}"
+      echo "Version: {{ .vars.version }}"
+      echo "Environment: {{ .env.DEPLOY_ENV }}"
+      echo "Total Duration: {{ .workflow.duration | default \"N/A\" }}"
+      echo ""
+      echo "All phases completed successfully!"
+    depends_on: [cleanup_workspace]

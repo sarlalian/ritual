@@ -1,0 +1,130 @@
+name: MySQL Automated Backup System
+description: MySQL Automated Backup System
+version: "1.0"
+
+environment:
+  DATABASE: "genius"
+  NOTIFICATION_EMAIL: "wfife@nsgmail.com"
+  BACKUP_ROOT: "/tmp/backups"
+  MYSQL_ROOT: "root"
+  MYSQL_ROOT_PASS: "root"
+
+vars:
+  backup_date: "{{ now | date \"2006-01-02\" }}"
+  backup_time: "{{ now | date \"15-04-05\" }}"
+  backup_name: "{{ .vars.DATABASE }}-{{ .vars.backup_date }}-{{ .vars.backup_time }}"
+  backup_dir: "{{ .env.BACKUP_ROOT }}/{{ .vars.backup_date }}"
+  compression_level: "6"
+
+tasks:
+  # Pre-backup validation
+  - id: create_directory
+    name: Create Backup Root Directory
+    type: file
+    path: "{{ .vars.BACKUP_ROOT }}"
+    state: directory
+
+  - id: create_backup_directory
+    name: Create Daily Backup Directory
+    type: file
+    path: "{{ .vars.backup_dir }}"
+    state: directory
+    mode: "0750"
+    depends_on: [create_directory]
+
+  - id: create_manifest
+    name: Create Backup Manifest
+    type: file
+    path: "{{ .vars.backup_dir }}/MANIFEST.txt"
+    state: file
+    content: |
+      Backup Manifest
+      ===============
+      Date: {{ now | date "2006-01-02 15:04:05 MST" }}
+      System: {{ env "HOSTNAME" }}
+      Backup Name: {{ .vars.backup_name }}
+      Source Directories: {{ .env.SOURCE_DIRS }}
+
+      Backup Process:
+    mode: "0644"
+    depends_on: [create_backup_directory]
+
+  # Database backup (runs in parallel with file backups)
+  - id: backup_database
+    name: Backup System Databases
+    type: command
+    command: |
+      mysqldump  -f --verbose --routines --triggers {{ .env.DATABASE }} > "{{ .vars.backup_dir }}/{{ .env.DATABASE }}-{{ .vars.backup_name }}.sql"
+    depends_on: [create_manifest]
+
+  - id: compress_database
+    name: Compress the backed up database
+    type: compress
+    path: "{{ .vars.backup_dir }}//{{ env.DATABASE }}-{{ .vars.backup_name }}.sql.tar.gz"
+    state: create
+    format: tar.gz
+    sources:
+      - "{{ .vars.backup_dir }}/{{ env.DATABASE }}-{{ .vars.backup_name }}.sql"
+    depends_on: [backup_database]
+
+  # Hash the backup
+  - id: checksum_backup
+    name: Checksum the database
+    type: checksum
+    action: calculate
+    algorithm: sha256
+    path: "{{ .vars.backup_dir }}//{{ env.DATABASE }}-{{ .vars.backup_name }}.sql.tar.gz"
+    depends_on: [compress_database]
+
+  # Generate backup report
+  - id: generate_report
+    name: Generate Backup Report
+    type: file
+    path: "{{ .vars.backup_dir }}/REPORT.txt"
+    state: file
+    content: |
+      BACKUP REPORT
+      =============
+
+      Backup Information:
+      - Date: {{ .vars.backup_date }}
+      - Time: {{ .vars.backup_time }}
+      - Name: {{ .vars.backup_name }}
+      - Location: {{ .vars.backup_dir }}
+
+      Task Results:
+      - Database backup: {{ .tasks.backup_databases.Status }}
+      - Verification: {{ .tasks.verify_backups.Status }}
+
+      Overall Status: {{ if eq .tasks.verify_backups.Status "success" }}SUCCESS{{ else }}FAILED{{ end }}
+
+      Next Steps:
+      {{ if eq .tasks.verify_backups.Status "success" -}}
+      - Backup completed successfully
+      - All archives verified
+      - Ready for offsite storage if needed
+      {{- else -}}
+      - Backup verification failed
+      - Check individual task logs
+      - Manual intervention may be required
+      {{- end }}
+    mode: "0644"
+    depends_on: [compress_database]
+
+  # Final status notification
+  - id: status_notification
+    name: Send Status Notification
+    type: command
+    command: |
+      report_file="{{ .vars.backup_dir }}/REPORT.txt"
+
+      # In a real environment, this would send email/notification
+      echo "Backup Status Notification"
+      echo "=========================="
+      cat "$report_file"
+
+      echo ""
+      echo "Backup location: {{ .vars.backup_dir }}"
+      echo "Total backup size: $(du -sh '{{ .vars.backup_dir }}' | cut -f1)"
+    depends_on: [generate_report]
+    required: false  # Notification failure shouldn't fail the backup

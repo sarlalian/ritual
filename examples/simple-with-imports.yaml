@@ -1,0 +1,31 @@
+name: Simple Workflow with Imports
+description: Test basic import functionality
+version: "1.0"
+
+# Import common tasks library
+imports:
+  - "library/common-tasks.yaml"
+
+environment:
+  TEST_VAR: "imported_test"
+
+tasks:
+  # Use imported notification task (will be prefixed as common_tasks_notify_start)
+  - id: start_notification
+    name: Start Workflow Notification
+    type: command
+    command: "echo 'Starting workflow with imports'"
+
+  # This is a local task
+  - id: local_task
+    name: Local Task
+    type: command
+    command: "echo 'This is a local task'"
+    depends_on: [start_notification]
+
+  # End notification
+  - id: end_notification
+    name: End Workflow Notification
+    type: command
+    command: "echo 'Workflow with imports completed'"
+    depends_on: [local_task]

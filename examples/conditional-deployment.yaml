@@ -1,0 +1,297 @@
+name: Conditional Deployment Pipeline
+description: Smart deployment pipeline with conditional logic and environment detection
+version: "1.0"
+
+environment:
+  TARGET_ENV: "{{ .env.DEPLOY_ENV | default \"staging\" }}"
+  BRANCH: "{{ .env.GIT_BRANCH | default \"main\" }}"
+  SKIP_TESTS: "{{ .env.SKIP_TESTS | default \"false\" }}"
+
+vars:
+  is_production: "{{ eq .env.TARGET_ENV \"production\" }}"
+  is_staging: "{{ eq .env.TARGET_ENV \"staging\" }}"
+  should_run_tests: "{{ ne .env.SKIP_TESTS \"true\" }}"
+  deployment_strategy: "{{ if .vars.is_production }}rolling{{ else }}blue-green{{ end }}"
+  notification_channels: "{{ if .vars.is_production }}#alerts,#deploys{{ else }}#dev-deploys{{ end }}"
+
+tasks:
+  # Environment Detection
+  - id: detect_environment
+    name: Detect Deployment Environment
+    type: command
+    command: |
+      echo "Deployment Configuration:"
+      echo "========================"
+      echo "Target Environment: {{ .env.TARGET_ENV }}"
+      echo "Branch: {{ .env.BRANCH }}"
+      echo "Is Production: {{ .vars.is_production }}"
+      echo "Is Staging: {{ .vars.is_staging }}"
+      echo "Should Run Tests: {{ .vars.should_run_tests }}"
+      echo "Deployment Strategy: {{ .vars.deployment_strategy }}"
+      echo "Notification Channels: {{ .vars.notification_channels }}"
+
+  # Conditional Branch Validation
+  - id: validate_production_branch
+    name: Validate Production Branch
+    type: command
+    command: |
+      if [ "{{ .env.BRANCH }}" != "main" ] && [ "{{ .env.BRANCH }}" != "release/*" ]; then
+        echo "ERROR: Production deployments only allowed from main or release/* branches"
+        echo "Current branch: {{ .env.BRANCH }}"
+        exit 1
+      fi
+      echo "Branch validation passed for production deployment"
+    when: "{{ .vars.is_production }}"
+    depends_on: [detect_environment]
+
+  # Conditional Testing
+  - id: run_unit_tests
+    name: Run Unit Tests
+    type: command
+    command: |
+      echo "Running unit tests..."
+      # Simulate test execution
+      sleep 1
+      echo "Unit tests completed successfully"
+    when: "{{ .vars.should_run_tests }}"
+    depends_on: [detect_environment]
+
+  - id: run_integration_tests
+    name: Run Integration Tests
+    type: command
+    command: |
+      echo "Running integration tests..."
+      # Simulate integration test execution
+      sleep 2
+      echo "Integration tests completed successfully"
+    when: "{{ and .vars.should_run_tests .vars.is_production }}"
+    depends_on: [run_unit_tests]
+
+  - id: run_smoke_tests
+    name: Run Smoke Tests
+    type: command
+    command: |
+      echo "Running smoke tests..."
+      # Simulate smoke test execution
+      sleep 1
+      echo "Smoke tests completed successfully"
+    when: "{{ .vars.should_run_tests }}"
+    depends_on: [detect_environment]
+
+  # Build Application
+  - id: build_application
+    name: Build Application
+    type: command
+    command: |
+      echo "Building application for {{ .env.TARGET_ENV }} environment..."
+
+      # Environment-specific build configuration
+      if [ "{{ .vars.is_production }}" = "true" ]; then
+        echo "Using production build configuration"
+        export NODE_ENV=production
+        export OPTIMIZE=true
+      else
+        echo "Using staging build configuration"
+        export NODE_ENV=staging
+        export DEBUG=true
+      fi
+
+      echo "Build completed successfully"
+    depends_on: [validate_production_branch, run_smoke_tests]
+
+  # Security Scanning (Production Only)
+  - id: security_scan
+    name: Run Security Scan
+    type: command
+    command: |
+      echo "Running security vulnerability scan..."
+      # Simulate security scanning
+      sleep 3
+      echo "Security scan completed - no critical vulnerabilities found"
+    when: "{{ .vars.is_production }}"
+    depends_on: [build_application]
+
+  # Performance Testing (Production Only)
+  - id: performance_test
+    name: Run Performance Tests
+    type: command
+    command: |
+      echo "Running performance tests..."
+      # Simulate performance testing
+      sleep 2
+      echo "Performance tests completed - all metrics within acceptable range"
+    when: "{{ .vars.is_production }}"
+    depends_on: [build_application]
+
+  # Environment-Specific Deployment Preparation
+  - id: prepare_staging_deployment
+    name: Prepare Staging Deployment
+    type: command
+    command: |
+      echo "Preparing staging deployment with blue-green strategy..."
+      echo "Setting up staging environment configuration"
+      echo "Staging deployment preparation completed"
+    when: "{{ .vars.is_staging }}"
+    depends_on: [build_application]
+
+  - id: prepare_production_deployment
+    name: Prepare Production Deployment
+    type: command
+    command: |
+      echo "Preparing production deployment with rolling strategy..."
+      echo "Validating production readiness..."
+      echo "Setting up production environment configuration"
+      echo "Production deployment preparation completed"
+    when: "{{ .vars.is_production }}"
+    depends_on: [security_scan, performance_test]
+
+  # Database Migration (if needed)
+  - id: check_database_migration
+    name: Check Database Migration Needs
+    type: command
+    command: |
+      echo "Checking for pending database migrations..."
+      # Simulate migration check
+      if [ "{{ .vars.is_production }}" = "true" ]; then
+        echo "Production: Found 0 pending migrations"
+        echo "DB_MIGRATION_NEEDED=false" > /tmp/migration_check.env
+      else
+        echo "Staging: Found 2 pending migrations"
+        echo "DB_MIGRATION_NEEDED=true" > /tmp/migration_check.env
+      fi
+    register: migration_check
+    depends_on: [prepare_staging_deployment, prepare_production_deployment]
+
+  - id: run_database_migration
+    name: Run Database Migration
+    type: command
+    command: |
+      echo "Running database migrations for {{ .env.TARGET_ENV }} environment..."
+      # Simulate migration execution
+      sleep 2
+      echo "Database migrations completed successfully"
+    when: "{{ eq (env \"DB_MIGRATION_NEEDED\") \"true\" }}"
+    depends_on: [check_database_migration]
+
+  # Deployment Execution
+  - id: deploy_to_staging
+    name: Deploy to Staging Environment
+    type: command
+    command: |
+      echo "Deploying to staging environment using {{ .vars.deployment_strategy }} strategy..."
+      # Simulate staging deployment
+      sleep 3
+      echo "Staging deployment completed successfully"
+      echo "Application URL: https://staging.example.com"
+    when: "{{ .vars.is_staging }}"
+    depends_on: [run_database_migration, check_database_migration]
+
+  - id: deploy_to_production
+    name: Deploy to Production Environment
+    type: command
+    command: |
+      echo "Deploying to production environment using {{ .vars.deployment_strategy }} strategy..."
+      # Simulate production deployment with rolling updates
+      sleep 5
+      echo "Production deployment completed successfully"
+      echo "Application URL: https://production.example.com"
+    when: "{{ .vars.is_production }}"
+    depends_on: [run_database_migration, check_database_migration]
+
+  # Post-Deployment Verification
+  - id: health_check
+    name: Post-Deployment Health Check
+    type: command
+    command: |
+      echo "Running post-deployment health checks..."
+
+      if [ "{{ .vars.is_production }}" = "true" ]; then
+        echo "Production health check: All services healthy"
+        echo "Response time: 150ms (within SLA)"
+        echo "Error rate: 0.001% (within threshold)"
+      else
+        echo "Staging health check: All services healthy"
+        echo "Response time: 200ms"
+        echo "Error rate: 0.1%"
+      fi
+
+      echo "Health check completed successfully"
+    depends_on: [deploy_to_staging, deploy_to_production]
+
+  # Conditional Rollback Preparation
+  - id: prepare_rollback_info
+    name: Prepare Rollback Information
+    type: file
+    path: "/tmp/rollback-{{ .env.TARGET_ENV }}.json"
+    state: file
+    content: |
+      {
+        "environment": "{{ .env.TARGET_ENV }}",
+        "deployment_time": "{{ now | date \"2006-01-02T15:04:05Z07:00\" }}",
+        "branch": "{{ .env.BRANCH }}",
+        "previous_version": "{{ .env.PREVIOUS_VERSION | default \"unknown\" }}",
+        "deployment_strategy": "{{ .vars.deployment_strategy }}",
+        "rollback_command": "ritual -f rollback-{{ .env.TARGET_ENV }}.yaml",
+        "health_check_status": "{{ .tasks.health_check.Status }}",
+        "can_auto_rollback": {{ if eq .tasks.health_check.Status "success" }}false{{ else }}true{{ end }}
+      }
+    mode: "0644"
+    depends_on: [health_check]
+
+  # Environment-Specific Notifications
+  - id: notify_staging_success
+    name: Notify Staging Deployment Success
+    type: command
+    command: |
+      echo "Sending staging deployment notification..."
+      echo "TO: #dev-deploys"
+      echo "MESSAGE: Staging deployment completed successfully"
+      echo "Environment: {{ .env.TARGET_ENV }}"
+      echo "Branch: {{ .env.BRANCH }}"
+      echo "Health Status: {{ .tasks.health_check.Status }}"
+    when: "{{ and .vars.is_staging (eq .tasks.health_check.Status \"success\") }}"
+    depends_on: [prepare_rollback_info]
+    required: false
+
+  - id: notify_production_success
+    name: Notify Production Deployment Success
+    type: command
+    command: |
+      echo "Sending production deployment notification..."
+      echo "TO: {{ .vars.notification_channels }}"
+      echo "MESSAGE: 🚀 Production deployment completed successfully"
+      echo "Environment: {{ .env.TARGET_ENV }}"
+      echo "Branch: {{ .env.BRANCH }}"
+      echo "Deployment Strategy: {{ .vars.deployment_strategy }}"
+      echo "Health Status: {{ .tasks.health_check.Status }}"
+      echo "Rollback Info: /tmp/rollback-{{ .env.TARGET_ENV }}.json"
+    when: "{{ and .vars.is_production (eq .tasks.health_check.Status \"success\") }}"
+    depends_on: [prepare_rollback_info]
+    required: false
+
+  # Failure Notifications
+  - id: notify_deployment_failure
+    name: Notify Deployment Failure
+    type: command
+    command: |
+      echo "Sending deployment failure notification..."
+      echo "TO: {{ .vars.notification_channels }}"
+      echo "MESSAGE: 🚨 Deployment FAILED for {{ .env.TARGET_ENV }}"
+      echo "Branch: {{ .env.BRANCH }}"
+      echo "Failed Task: Look for failed tasks in logs"
+      echo "Action Required: Manual intervention needed"
+    when: "{{ ne .tasks.health_check.Status \"success\" }}"
+    depends_on: [prepare_rollback_info]
+    required: false
+
+  # Cleanup
+  - id: cleanup_deployment_artifacts
+    name: Clean Up Deployment Artifacts
+    type: command
+    command: |
+      echo "Cleaning up temporary deployment files..."
+      # Clean up temporary files, but keep rollback info
+      rm -f /tmp/migration_check.env
+      echo "Cleanup completed"
+    depends_on: [notify_staging_success, notify_production_success, notify_deployment_failure]
+    required: false

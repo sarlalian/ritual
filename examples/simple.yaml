@@ -1,0 +1,24 @@
+name: Simple Example Workflow
+description: A basic workflow demonstrating command execution
+version: "1.0"
+
+# Environment variables available to all tasks
+environment:
+  GREETING: "Hello"
+  USER: "World"
+
+# Workflow variables
+vars:
+  message: "{{ .env.GREETING }} {{ .env.USER }}"
+
+tasks:
+  - id: hello
+    name: Say Hello
+    type: command
+    command: "echo '{{ .vars.message }}'"
+
+  - id: date
+    name: Show Current Date
+    type: command
+    command: "date"
+    depends_on: [hello]

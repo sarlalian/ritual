@@ -1,0 +1,42 @@
+# Development Environment Variables
+environment_name: development
+debug_mode: true
+log_level: debug
+
+# Database Configuration
+database:
+  host: localhost
+  port: 5432
+  name: ritual_dev
+  ssl_mode: disable
+
+# API Configuration
+api:
+  port: 3000
+  base_url: http://localhost:3000
+  cors_enabled: true
+  rate_limit: 1000
+
+# Build Configuration
+build:
+  optimization: false
+  source_maps: true
+  minification: false
+
+# Feature Flags
+features:
+  new_ui: true
+  analytics: false
+  beta_features: true
+
+# Notification Settings
+notifications:
+  email_enabled: false
+  slack_webhook: ""
+  discord_webhook: ""
+
+# Resource Limits
+limits:
+  max_concurrent_jobs: 5
+  timeout_seconds: 300
+  max_file_size_mb: 50

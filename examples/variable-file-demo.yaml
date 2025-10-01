@@ -1,0 +1,177 @@
+name: Variable File Demo
+description: Demonstrates loading variables from external files
+version: "1.0"
+
+# Load variables from files
+variable_files:
+  - "variables/environments/{{ env \"ENVIRONMENT\" | default \"development\" }}.yaml"
+  - "variables/configs/build.env"
+  - "variables/configs/deployment.json"
+
+environment:
+  ENVIRONMENT: "{{ env \"ENVIRONMENT\" | default \"development\" }}"
+  LOG_LEVEL: "{{ .vars.log_level | default \"info\" }}"
+
+tasks:
+  - id: show_environment
+    name: Show Environment Configuration
+    type: command
+    command: |
+      echo "🌍 Environment Configuration"
+      echo "=========================="
+      echo "Environment: {{ .vars.environment_name }}"
+      echo "Debug Mode: {{ .vars.debug_mode }}"
+      echo "Log Level: {{ .vars.log_level }}"
+      echo ""
+      echo "Database:"
+      echo "  Host: {{ .vars.database.host }}"
+      echo "  Port: {{ .vars.database.port }}"
+      echo "  Name: {{ .vars.database.name }}"
+      echo "  SSL: {{ .vars.database.ssl_mode }}"
+      echo ""
+      echo "API Configuration:"
+      echo "  Port: {{ .vars.api.port }}"
+      echo "  Base URL: {{ .vars.api.base_url }}"
+      echo "  CORS Enabled: {{ .vars.api.cors_enabled }}"
+      echo "  Rate Limit: {{ .vars.api.rate_limit }}"
+
+  - id: show_build_config
+    name: Show Build Configuration
+    type: command
+    command: |
+      echo "🔨 Build Configuration"
+      echo "===================="
+      echo "Node Version: {{ .vars.NODE_VERSION }}"
+      echo "Python Version: {{ .vars.PYTHON_VERSION }}"
+      echo "Go Version: {{ .vars.GO_VERSION }}"
+      echo ""
+      echo "Build Tools:"
+      echo "  Webpack: {{ .vars.USE_WEBPACK }}"
+      echo "  Vite: {{ .vars.USE_VITE }}"
+      echo "  Target: {{ .vars.BUILD_TARGET }}"
+      echo ""
+      echo "Output Settings:"
+      echo "  Output Dir: {{ .vars.OUTPUT_DIR }}"
+      echo "  Assets Dir: {{ .vars.ASSETS_DIR }}"
+      echo "  Public Path: {{ .vars.PUBLIC_PATH }}"
+      echo ""
+      echo "Optimization:"
+      echo "  Minification: {{ .vars.ENABLE_MINIFICATION }}"
+      echo "  Compression: {{ .vars.ENABLE_COMPRESSION }}"
+      echo "  Tree Shaking: {{ .vars.TREE_SHAKING }}"
+    depends_on: [show_environment]
+
+  - id: show_deployment_config
+    name: Show Deployment Configuration
+    type: command
+    command: |
+      echo "🚀 Deployment Configuration"
+      echo "=========================="
+      echo "Strategy: {{ .vars.deployment.strategy }}"
+      echo "Rollback Enabled: {{ .vars.deployment.rollback_enabled }}"
+      echo "Health Check Timeout: {{ .vars.deployment.health_check_timeout }}s"
+      echo ""
+      echo "Infrastructure:"
+      echo "  Provider: {{ .vars.infrastructure.provider }}"
+      echo "  Region: {{ .vars.infrastructure.region }}"
+      echo "  Instance Type: {{ .vars.infrastructure.instance_type }}"
+      echo "  Min Instances: {{ .vars.infrastructure.min_instances }}"
+      echo "  Max Instances: {{ .vars.infrastructure.max_instances }}"
+      echo ""
+      echo "Monitoring:"
+      echo "  Enabled: {{ .vars.monitoring.enabled }}"
+      echo "  Retention: {{ .vars.monitoring.metrics_retention_days }} days"
+      echo "  CPU Threshold: {{ .vars.monitoring.alert_thresholds.cpu_percent }}%"
+      echo "  Memory Threshold: {{ .vars.monitoring.alert_thresholds.memory_percent }}%"
+    depends_on: [show_build_config]
+
+  - id: create_config_summary
+    name: Create Configuration Summary
+    type: file
+    path: "config-summary-{{ .vars.environment_name }}.md"
+    state: file
+    content: |
+      # Configuration Summary - {{ .vars.environment_name }}
+
+      **Generated:** {{ now | date "2006-01-02 15:04:05" }}
+
+      ## Environment Settings
+      - **Name:** {{ .vars.environment_name }}
+      - **Debug:** {{ .vars.debug_mode }}
+      - **Log Level:** {{ .vars.log_level }}
+
+      ## Database Configuration
+      - **Host:** {{ .vars.database.host }}
+      - **Port:** {{ .vars.database.port }}
+      - **Database:** {{ .vars.database.name }}
+      - **SSL Mode:** {{ .vars.database.ssl_mode }}
+
+      ## API Configuration
+      - **Port:** {{ .vars.api.port }}
+      - **Base URL:** {{ .vars.api.base_url }}
+      - **CORS:** {{ .vars.api.cors_enabled }}
+      - **Rate Limit:** {{ .vars.api.rate_limit }} requests
+
+      ## Build Configuration
+      - **Node Version:** {{ .vars.NODE_VERSION }}
+      - **Build Target:** {{ .vars.BUILD_TARGET }}
+      - **Output Directory:** {{ .vars.OUTPUT_DIR }}
+      - **Minification:** {{ .vars.ENABLE_MINIFICATION }}
+
+      ## Deployment Configuration
+      - **Strategy:** {{ .vars.deployment.strategy }}
+      - **Provider:** {{ .vars.infrastructure.provider }}
+      - **Region:** {{ .vars.infrastructure.region }}
+      - **Instance Type:** {{ .vars.infrastructure.instance_type }}
+
+      ## Feature Flags
+      {{- range $key, $value := .vars.features }}
+      - **{{ $key }}:** {{ $value }}
+      {{- end }}
+
+      ## Resource Limits
+      - **Max Concurrent Jobs:** {{ .vars.limits.max_concurrent_jobs }}
+      - **Timeout:** {{ .vars.limits.timeout_seconds }}s
+      - **Max File Size:** {{ .vars.limits.max_file_size_mb }}MB
+    mode: "0644"
+    depends_on: [show_deployment_config]
+
+  - id: validate_configuration
+    name: Validate Configuration
+    type: command
+    command: |
+      echo "🔍 Validating Configuration"
+      echo "=========================="
+
+      # Validate required settings
+      errors=0
+
+      if [ -z "{{ .vars.database.host }}" ]; then
+        echo "❌ Database host is not configured"
+        errors=$((errors + 1))
+      else
+        echo "✅ Database host: {{ .vars.database.host }}"
+      fi
+
+      if [ "{{ .vars.api.port }}" = "0" ]; then
+        echo "❌ API port is not configured"
+        errors=$((errors + 1))
+      else
+        echo "✅ API port: {{ .vars.api.port }}"
+      fi
+
+      if [ -z "{{ .vars.infrastructure.provider }}" ]; then
+        echo "❌ Infrastructure provider is not configured"
+        errors=$((errors + 1))
+      else
+        echo "✅ Infrastructure provider: {{ .vars.infrastructure.provider }}"
+      fi
+
+      echo ""
+      if [ $errors -eq 0 ]; then
+        echo "✅ All configuration validation checks passed!"
+      else
+        echo "❌ Configuration validation failed with $errors errors"
+        exit 1
+      fi
+    depends_on: [create_config_summary]

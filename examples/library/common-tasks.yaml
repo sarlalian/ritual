@@ -1,0 +1,192 @@
+name: Common Tasks Library
+description: Reusable common tasks for various workflows
+version: "1.0"
+
+# Common environment variables
+environment:
+  DEFAULT_TIMEOUT: "30s"
+  LOG_LEVEL: "info"
+
+# Common variables
+vars:
+  timestamp: "{{ now | date \"20060102-150405\" }}"
+
+tasks:
+  # Environment Setup Tasks
+  - id: check_prerequisites
+    name: Check System Prerequisites
+    type: command
+    command: |
+      echo "Checking system prerequisites..."
+
+      # Check disk space (need at least 1GB)
+      available=$(df -BG . | awk 'NR==2 {print $4}' | sed 's/G//')
+      if [ "$available" -lt 1 ]; then
+        echo "ERROR: Insufficient disk space (${available}GB available, 1GB required)"
+        exit 1
+      fi
+
+      # Check basic tools
+      for tool in git curl tar gzip; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+          echo "ERROR: Required tool '$tool' not found"
+          exit 1
+        fi
+      done
+
+      echo "✅ All prerequisites satisfied"
+
+  - id: create_temp_dir
+    name: Create Temporary Directory
+    type: file
+    path: "/tmp/ritual-{{ .vars.timestamp }}"
+    state: directory
+    mode: "0755"
+
+  - id: cleanup_temp_dir
+    name: Clean Up Temporary Directory
+    type: file
+    path: "/tmp/ritual-{{ .vars.timestamp }}"
+    state: absent
+
+  # Git Operations
+  - id: git_status
+    name: Check Git Repository Status
+    type: command
+    command: |
+      if [ ! -d ".git" ]; then
+        echo "Not a git repository"
+        exit 0
+      fi
+
+      echo "Git Repository Status:"
+      echo "======================"
+      git status --porcelain
+      echo ""
+      echo "Current branch: $(git branch --show-current)"
+      echo "Last commit: $(git log -1 --oneline)"
+
+  - id: git_pull
+    name: Pull Latest Changes
+    type: command
+    command: |
+      if [ ! -d ".git" ]; then
+        echo "Not a git repository, skipping pull"
+        exit 0
+      fi
+
+      echo "Pulling latest changes..."
+      git pull origin $(git branch --show-current)
+
+  # Notification Tasks
+  - id: notify_start
+    name: Send Start Notification
+    type: command
+    command: |
+      echo "📋 Workflow Started"
+      echo "==================="
+      echo "Time: $(date)"
+      echo "User: $(whoami)"
+      echo "Host: $(hostname)"
+      echo "Working Directory: $(pwd)"
+
+  - id: notify_success
+    name: Send Success Notification
+    type: command
+    command: |
+      echo "✅ Workflow Completed Successfully"
+      echo "=================================="
+      echo "Time: $(date)"
+      echo "Duration: {{ .workflow.duration | default \"N/A\" }}"
+
+  - id: notify_failure
+    name: Send Failure Notification
+    type: command
+    command: |
+      echo "❌ Workflow Failed"
+      echo "=================="
+      echo "Time: $(date)"
+      echo "Check logs for details"
+
+  # File Operations
+  - id: backup_directory
+    name: Create Directory Backup
+    type: compress
+    path: "/tmp/backup-{{ .vars.timestamp }}.tar.gz"
+    state: create
+    format: tar.gz
+    sources: ["."]
+    exclude:
+      - ".git/*"
+      - "node_modules/*"
+      - "*.log"
+      - "*.tmp"
+
+  - id: verify_backup
+    name: Verify Backup Integrity
+    type: command
+    command: |
+      backup_file="/tmp/backup-{{ .vars.timestamp }}.tar.gz"
+      if [ -f "$backup_file" ]; then
+        echo "Verifying backup integrity..."
+        if tar -tzf "$backup_file" >/dev/null 2>&1; then
+          size=$(du -h "$backup_file" | cut -f1)
+          files=$(tar -tzf "$backup_file" | wc -l)
+          echo "✅ Backup verified: $size ($files files)"
+        else
+          echo "❌ Backup verification failed"
+          exit 1
+        fi
+      else
+        echo "❌ Backup file not found"
+        exit 1
+      fi
+
+  # System Monitoring
+  - id: system_health_check
+    name: System Health Check
+    type: command
+    command: |
+      echo "System Health Check"
+      echo "==================="
+
+      # CPU usage
+      cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | sed 's/%us,//')
+      echo "CPU Usage: ${cpu_usage:-N/A}"
+
+      # Memory usage
+      if command -v free >/dev/null 2>&1; then
+        mem_info=$(free -h | awk 'NR==2{printf "Memory: %s/%s (%.1f%%)", $3, $2, $3*100/$2}')
+        echo "$mem_info"
+      fi
+
+      # Disk usage
+      echo "Disk Usage:"
+      df -h | grep -E '^/dev/' | awk '{print "  " $1 ": " $3 "/" $2 " (" $5 ")"}'
+
+      echo "✅ Health check completed"
+
+  # Security Tasks
+  - id: check_permissions
+    name: Check File Permissions
+    type: command
+    command: |
+      echo "Checking sensitive file permissions..."
+
+      # Check for world-writable files (security risk)
+      world_writable=$(find . -type f -perm -002 2>/dev/null | head -10)
+      if [ -n "$world_writable" ]; then
+        echo "⚠️  Found world-writable files:"
+        echo "$world_writable"
+      else
+        echo "✅ No world-writable files found"
+      fi
+
+      # Check for files with no owner (orphaned files)
+      orphaned=$(find . -nouser -o -nogroup 2>/dev/null | head -5)
+      if [ -n "$orphaned" ]; then
+        echo "⚠️  Found orphaned files:"
+        echo "$orphaned"
+      else
+        echo "✅ No orphaned files found"
+      fi

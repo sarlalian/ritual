@@ -1,0 +1,115 @@
+name: Ritual Feature Showcase
+description: Demonstrates all major task types and features
+version: "1.0"
+
+environment:
+  DEMO_ENV: "production"
+  USER: "${USER}"
+
+vars:
+  timestamp: "{{ now | date \"2006-01-02-15-04-05\" }}"
+  hostname: "{{ hostname }}"
+  temp_dir: "/tmp/ritual-showcase-{{ .vars.timestamp }}"
+
+tasks:
+  # Core: Command execution
+  - id: print_banner
+    name: Print Welcome Banner
+    type: command
+    command: |
+      echo "================================"
+      echo "  Ritual Workflow Showcase"
+      echo "  Host: {{ .vars.hostname }}"
+      echo "  Time: {{ now }}"
+      echo "================================"
+
+  # File Operations: Create directory
+  - id: setup_workspace
+    name: Setup Workspace Directory
+    type: file
+    path: "{{ .vars.temp_dir }}"
+    state: directory
+    mode: "0755"
+    depends_on: [print_banner]
+
+  # File Operations: Create files with templating
+  - id: create_data_file
+    name: Create Sample Data File
+    type: file
+    path: "{{ .vars.temp_dir }}/data.txt"
+    state: file
+    content: |
+      Sample Data File
+      Created: {{ now }}
+      Host: {{ .vars.hostname }}
+      User: {{ .env.USER }}
+    depends_on: [setup_workspace]
+
+  - id: create_config
+    name: Create Config File
+    type: file
+    path: "{{ .vars.temp_dir }}/config.json"
+    state: file
+    content: |
+      {
+        "version": "1.0",
+        "environment": "{{ .env.DEMO_ENV }}",
+        "timestamp": "{{ .vars.timestamp }}"
+      }
+    depends_on: [setup_workspace]
+
+  # Security: Calculate checksum
+  - id: checksum_data
+    name: Calculate Data File Checksum
+    type: checksum
+    path: "{{ .vars.temp_dir }}/data.txt"
+    algorithm: sha256
+    action: calculate
+    depends_on: [create_data_file]
+    register: data_checksum
+
+  # Compression: Create archive
+  - id: create_archive
+    name: Create Archive
+    type: compress
+    path: "{{ .vars.temp_dir }}.tar.gz"
+    state: create
+    format: tar.gz
+    sources:
+      - "{{ .vars.temp_dir }}"
+    depends_on: [create_data_file, create_config, checksum_data]
+
+  # Verify archive was created
+  - id: verify_archive
+    name: Verify Archive Exists
+    type: command
+    command: ls -lh /tmp/ritual-showcase-*.tar.gz || echo "Archive check complete"
+    depends_on: [create_archive]
+    required: false
+
+  # Cleanup
+  - id: cleanup
+    name: Cleanup Workspace
+    type: file
+    path: "{{ .vars.temp_dir }}"
+    state: absent
+    depends_on: [verify_archive]
+
+  - id: cleanup_archive
+    name: Cleanup Archive
+    type: file
+    path: "{{ .vars.temp_dir }}.tar.gz"
+    state: absent
+    depends_on: [verify_archive]
+
+  # Final summary
+  - id: summary
+    name: Print Summary
+    type: command
+    command: |
+      echo "================================"
+      echo "  Workflow Completed!"
+      echo "  Time: {{ now }}"
+      echo "  All tasks executed successfully"
+      echo "================================"
+    depends_on: [cleanup, cleanup_archive]

@@ -1,0 +1,32 @@
+{
+  "deployment": {
+    "strategy": "blue-green",
+    "rollback_enabled": true,
+    "health_check_timeout": 300,
+    "max_rollback_attempts": 3
+  },
+  "infrastructure": {
+    "provider": "aws",
+    "region": "us-west-2",
+    "availability_zones": ["us-west-2a", "us-west-2b", "us-west-2c"],
+    "instance_type": "t3.medium",
+    "min_instances": 2,
+    "max_instances": 10
+  },
+  "monitoring": {
+    "enabled": true,
+    "metrics_retention_days": 30,
+    "alert_thresholds": {
+      "cpu_percent": 80,
+      "memory_percent": 85,
+      "error_rate_percent": 5,
+      "response_time_ms": 1000
+    }
+  },
+  "security": {
+    "encryption_at_rest": true,
+    "encryption_in_transit": true,
+    "security_groups": ["sg-web", "sg-api", "sg-db"],
+    "backup_retention_days": 7
+  }
+}

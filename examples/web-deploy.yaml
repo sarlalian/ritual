@@ -1,0 +1,199 @@
+name: Web Application Deployment
+description: Complete CI/CD pipeline for web application deployment
+version: "1.0"
+
+# Environment variables with defaults
+environment:
+  NODE_ENV: "production"
+  BUILD_DIR: "{{ .env.PWD }}/build"
+  DEPLOY_HOST: "production.example.com"
+  BACKUP_DIR: "/backup/{{ .vars.app_name }}"
+
+# Workflow variables
+vars:
+  app_name: "mywebapp"
+  version: "{{ .env.GIT_COMMIT | default \"latest\" }}"
+  timestamp: "{{ now | date \"20060102-150405\" }}"
+  backup_file: "{{ .vars.app_name }}-{{ .vars.timestamp }}.tar.gz"
+
+tasks:
+  # Environment Setup
+  - id: check_dependencies
+    name: Check Required Tools
+    type: command
+    command: |
+      echo "Checking required tools..."
+      which node npm git tar || exit 1
+      echo "All dependencies found"
+
+  # Source Code Management
+  - id: checkout_code
+    name: Checkout Latest Code
+    type: command
+    command: "git status && git pull origin main"
+    depends_on: [check_dependencies]
+
+  # Build Process
+  - id: install_dependencies
+    name: Install Node Dependencies
+    type: command
+    command: "npm ci --production=false"
+    timeout: "5m"
+    depends_on: [checkout_code]
+
+  - id: run_tests
+    name: Run Unit Tests
+    type: command
+    command: "npm test"
+    timeout: "10m"
+    depends_on: [install_dependencies]
+
+  - id: run_linting
+    name: Run Code Linting
+    type: command
+    command: "npm run lint"
+    depends_on: [install_dependencies]
+
+  - id: build_application
+    name: Build Production Assets
+    type: command
+    command: "npm run build"
+    environment:
+      NODE_ENV: "{{ .env.NODE_ENV }}"
+    timeout: "10m"
+    depends_on: [run_tests, run_linting]
+
+  # Build Verification
+  - id: verify_build
+    name: Verify Build Output
+    type: command
+    command: |
+      if [ ! -d "{{ .env.BUILD_DIR }}" ]; then
+        echo "Build directory not found"
+        exit 1
+      fi
+      echo "Build verification passed"
+    depends_on: [build_application]
+
+  # Create Deployment Package
+  - id: create_deployment_package
+    name: Create Deployment Archive
+    type: compress
+    path: "deploy/{{ .vars.backup_file }}"
+    state: create
+    format: tar.gz
+    sources:
+      - "{{ .env.BUILD_DIR }}"
+      - "package.json"
+      - "package-lock.json"
+    exclude:
+      - "*.log"
+      - "node_modules"
+      - ".git"
+    depends_on: [verify_build]
+
+  # Pre-deployment Tasks
+  - id: create_backup_dir
+    name: Create Backup Directory
+    type: file
+    path: "{{ .env.BACKUP_DIR }}"
+    state: directory
+    mode: "0755"
+    depends_on: [create_deployment_package]
+
+  - id: backup_current_deployment
+    name: Backup Current Deployment
+    type: command
+    command: |
+      if [ -d "/var/www/{{ .vars.app_name }}" ]; then
+        tar -czf "{{ .env.BACKUP_DIR }}/pre-deploy-{{ .vars.timestamp }}.tar.gz" \
+          -C /var/www "{{ .vars.app_name }}"
+        echo "Current deployment backed up"
+      else
+        echo "No existing deployment to backup"
+      fi
+    depends_on: [create_backup_dir]
+
+  # Health Check (runs in parallel with backup)
+  - id: health_check
+    name: Pre-deployment Health Check
+    type: command
+    command: |
+      echo "Performing health checks..."
+      # Check disk space
+      df -h | grep -E '^/dev/' | awk '{ print $5 " " $1 }' | while read output;
+      do
+        usage=$(echo $output | awk '{ print $1}' | sed 's/%//g')
+        partition=$(echo $output | awk '{ print $2 }')
+        if [ $usage -ge 90 ]; then
+          echo "Running out of space \"$partition ($usage%)\""
+          exit 1
+        fi
+      done
+      echo "Health checks passed"
+    depends_on: [create_deployment_package]
+
+  # Deployment
+  - id: stop_application
+    name: Stop Application Services
+    type: command
+    command: |
+      echo "Stopping application services..."
+      # Simulate service stop
+      echo "Application stopped"
+    depends_on: [backup_current_deployment, health_check]
+
+  - id: deploy_application
+    name: Deploy New Version
+    type: command
+    command: |
+      echo "Deploying {{ .vars.app_name }} version {{ .vars.version }}"
+      # Simulate deployment
+      mkdir -p "/var/www/{{ .vars.app_name }}"
+      echo "Deployment completed"
+    depends_on: [stop_application]
+
+  - id: start_application
+    name: Start Application Services
+    type: command
+    command: |
+      echo "Starting application services..."
+      # Simulate service start
+      echo "Application started"
+    depends_on: [deploy_application]
+
+  # Post-deployment Verification
+  - id: smoke_test
+    name: Run Smoke Tests
+    type: command
+    command: |
+      echo "Running smoke tests..."
+      # Simulate smoke tests
+      sleep 2
+      echo "Smoke tests passed"
+    depends_on: [start_application]
+
+  - id: update_deployment_log
+    name: Update Deployment Log
+    type: file
+    path: "/var/log/{{ .vars.app_name }}/deployment.log"
+    state: file
+    content: |
+      [{{ now | date "2006-01-02 15:04:05" }}] Deployment completed
+      Application: {{ .vars.app_name }}
+      Version: {{ .vars.version }}
+      Build timestamp: {{ .vars.timestamp }}
+      Status: {{ .tasks.smoke_test.Status }}
+    mode: "0644"
+    depends_on: [smoke_test]
+
+  # Cleanup
+  - id: cleanup_old_backups
+    name: Cleanup Old Backups
+    type: command
+    command: |
+      echo "Cleaning up backups older than 30 days..."
+      find "{{ .env.BACKUP_DIR }}" -name "*.tar.gz" -mtime +30 -delete
+      echo "Cleanup completed"
+    depends_on: [update_deployment_log]
+    required: false  # This task can fail without failing the deployment

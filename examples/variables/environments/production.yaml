@@ -1,0 +1,42 @@
+# Production Environment Variables
+environment_name: production
+debug_mode: false
+log_level: info
+
+# Database Configuration
+database:
+  host: db.production.com
+  port: 5432
+  name: ritual_prod
+  ssl_mode: require
+
+# API Configuration
+api:
+  port: 8080
+  base_url: https://api.example.com
+  cors_enabled: false
+  rate_limit: 5000
+
+# Build Configuration
+build:
+  optimization: true
+  source_maps: false
+  minification: true
+
+# Feature Flags
+features:
+  new_ui: true
+  analytics: true
+  beta_features: false
+
+# Notification Settings
+notifications:
+  email_enabled: true
+  slack_webhook: "https://hooks.slack.com/services/PROD/WEBHOOK/URL"
+  discord_webhook: ""
+
+# Resource Limits
+limits:
+  max_concurrent_jobs: 20
+  timeout_seconds: 600
+  max_file_size_mb: 100

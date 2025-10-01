@@ -1,0 +1,73 @@
+name: Simple Composed Workflow
+description: Demonstrates workflow composition with imports
+version: "1.0"
+
+# Import reusable workflow libraries
+imports:
+  - "library/common-tasks.yaml"
+
+environment:
+  PROJECT_NAME: "demo-app"
+  BUILD_ENV: "staging"
+
+vars:
+  project_version: "1.0.0"
+  build_time: "{{ now | date \"2006-01-02 15:04:05\" }}"
+
+tasks:
+  # Main workflow tasks
+  - id: start_build
+    name: Start Build Process
+    type: command
+    command: |
+      echo "🚀 Starting build process"
+      echo "Project: {{ .env.PROJECT_NAME }}"
+      echo "Version: {{ .vars.project_version }}"
+      echo "Environment: {{ .env.BUILD_ENV }}"
+      echo "Build Time: {{ .vars.build_time }}"
+
+  # Custom application build
+  - id: compile_app
+    name: Compile Application
+    type: command
+    command: |
+      echo "📦 Compiling application..."
+      sleep 1
+      echo "✅ Compilation successful"
+    depends_on: [start_build]
+
+  # Custom test execution
+  - id: run_tests
+    name: Run Application Tests
+    type: command
+    command: |
+      echo "🧪 Running tests..."
+      sleep 1
+      echo "✅ All tests passed (15/15)"
+    depends_on: [compile_app]
+
+  # Package application
+  - id: package_app
+    name: Package Application
+    type: compress
+    path: "dist/{{ .env.PROJECT_NAME }}-{{ .vars.project_version }}.tar.gz"
+    state: create
+    format: tar.gz
+    sources:
+      - "build"
+      - "README.md"
+    exclude:
+      - "*.log"
+      - ".git"
+    depends_on: [run_tests]
+
+  # Final status (references imported task results)
+  - id: complete_build
+    name: Complete Build Process
+    type: command
+    command: |
+      echo "✅ Build process completed successfully!"
+      echo "Package: dist/{{ .env.PROJECT_NAME }}-{{ .vars.project_version }}.tar.gz"
+      echo "System health checked via imported tasks"
+      echo "Build artifacts ready for deployment"
+    depends_on: [package_app]

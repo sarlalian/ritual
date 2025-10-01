@@ -1,0 +1,21 @@
+name: Variable Loading Test
+description: Simple test to debug variable loading
+version: "1.0"
+
+variable_files:
+  - "variables/environments/development.yaml"
+
+tasks:
+  - id: debug_variables
+    name: Debug Variable Loading
+    type: file
+    path: "debug-variables.txt"
+    state: file
+    content: |
+      Testing variable loading...
+      Environment Name: '{{ .vars.environment_name }}'
+      Debug Mode: '{{ .vars.debug_mode }}'
+      All variables:
+      {{ range $key, $value := .vars -}}
+      - {{ $key }}: {{ $value }}
+      {{ end }}

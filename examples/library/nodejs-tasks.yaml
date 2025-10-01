@@ -1,0 +1,326 @@
+name: Node.js Tasks Library
+description: Reusable Node.js development and build tasks
+version: "1.0"
+
+environment:
+  NODE_ENV: "development"
+  NPM_REGISTRY: "https://registry.npmjs.org/"
+
+vars:
+  node_version: "{{ env \"NODE_VERSION\" | default \"18\" }}"
+  package_manager: "{{ env \"PACKAGE_MANAGER\" | default \"npm\" }}"
+
+tasks:
+  # Environment Setup
+  - id: check_node_version
+    name: Check Node.js Version
+    type: command
+    command: |
+      echo "Node.js Environment Check"
+      echo "========================="
+
+      if ! command -v node >/dev/null 2>&1; then
+        echo "❌ Node.js not installed"
+        exit 1
+      fi
+
+      node_version=$(node --version)
+      npm_version=$(npm --version)
+
+      echo "Node.js version: $node_version"
+      echo "npm version: $npm_version"
+
+      # Check if package.json exists
+      if [ ! -f "package.json" ]; then
+        echo "⚠️  No package.json found"
+      else
+        echo "✅ package.json found"
+      fi
+
+  - id: install_dependencies
+    name: Install Node.js Dependencies
+    type: command
+    command: |
+      if [ ! -f "package.json" ]; then
+        echo "No package.json found, skipping dependency installation"
+        exit 0
+      fi
+
+      echo "Installing {{ .vars.package_manager }} dependencies..."
+
+      case "{{ .vars.package_manager }}" in
+        "yarn")
+          yarn install --frozen-lockfile
+          ;;
+        "pnpm")
+          pnpm install --frozen-lockfile
+          ;;
+        *)
+          npm ci
+          ;;
+      esac
+
+      echo "✅ Dependencies installed successfully"
+    timeout: "5m"
+
+  - id: audit_dependencies
+    name: Audit Dependencies for Security
+    type: command
+    command: |
+      if [ ! -f "package.json" ]; then
+        echo "No package.json found, skipping security audit"
+        exit 0
+      fi
+
+      echo "Running security audit..."
+
+      case "{{ .vars.package_manager }}" in
+        "yarn")
+          yarn audit --level moderate
+          ;;
+        "pnpm")
+          pnpm audit
+          ;;
+        *)
+          npm audit --audit-level moderate
+          ;;
+      esac
+
+      echo "✅ Security audit completed"
+
+  # Code Quality
+  - id: run_linter
+    name: Run Code Linter
+    type: command
+    command: |
+      if [ ! -f "package.json" ]; then
+        echo "No package.json found, skipping linting"
+        exit 0
+      fi
+
+      echo "Running code linter..."
+
+      # Check if ESLint script exists
+      if npm run --silent 2>/dev/null | grep -q "lint"; then
+        npm run lint
+      elif command -v eslint >/dev/null 2>&1; then
+        eslint src/ --ext .js,.ts,.jsx,.tsx
+      else
+        echo "No linter configuration found"
+        exit 0
+      fi
+
+      echo "✅ Linting completed"
+
+  - id: run_formatter_check
+    name: Check Code Formatting
+    type: command
+    command: |
+      if [ ! -f "package.json" ]; then
+        echo "No package.json found, skipping formatting check"
+        exit 0
+      fi
+
+      echo "Checking code formatting..."
+
+      # Check if Prettier script exists
+      if npm run --silent 2>/dev/null | grep -q "format:check"; then
+        npm run format:check
+      elif command -v prettier >/dev/null 2>&1; then
+        prettier --check "src/**/*.{js,ts,jsx,tsx,json,css,md}"
+      else
+        echo "No formatter configuration found"
+        exit 0
+      fi
+
+      echo "✅ Formatting check completed"
+
+  - id: run_type_check
+    name: Run TypeScript Type Check
+    type: command
+    command: |
+      if [ ! -f "tsconfig.json" ]; then
+        echo "No tsconfig.json found, skipping type checking"
+        exit 0
+      fi
+
+      echo "Running TypeScript type check..."
+
+      if npm run --silent 2>/dev/null | grep -q "type-check"; then
+        npm run type-check
+      elif command -v tsc >/dev/null 2>&1; then
+        tsc --noEmit
+      else
+        echo "TypeScript not available"
+        exit 0
+      fi
+
+      echo "✅ Type checking completed"
+
+  # Testing
+  - id: run_unit_tests
+    name: Run Unit Tests
+    type: command
+    command: |
+      if [ ! -f "package.json" ]; then
+        echo "No package.json found, skipping tests"
+        exit 0
+      fi
+
+      echo "Running unit tests..."
+
+      if npm run --silent 2>/dev/null | grep -q "test"; then
+        npm test
+      elif npm run --silent 2>/dev/null | grep -q "test:unit"; then
+        npm run test:unit
+      else
+        echo "No test script found"
+        exit 0
+      fi
+
+      echo "✅ Unit tests completed"
+
+  - id: run_integration_tests
+    name: Run Integration Tests
+    type: command
+    command: |
+      if [ ! -f "package.json" ]; then
+        echo "No package.json found, skipping integration tests"
+        exit 0
+      fi
+
+      echo "Running integration tests..."
+
+      if npm run --silent 2>/dev/null | grep -q "test:integration"; then
+        npm run test:integration
+      else
+        echo "No integration test script found, skipping"
+        exit 0
+      fi
+
+      echo "✅ Integration tests completed"
+
+  - id: generate_test_coverage
+    name: Generate Test Coverage Report
+    type: command
+    command: |
+      if [ ! -f "package.json" ]; then
+        echo "No package.json found, skipping coverage"
+        exit 0
+      fi
+
+      echo "Generating test coverage report..."
+
+      if npm run --silent 2>/dev/null | grep -q "test:coverage"; then
+        npm run test:coverage
+      elif npm run --silent 2>/dev/null | grep -q "coverage"; then
+        npm run coverage
+      else
+        echo "No coverage script found"
+        exit 0
+      fi
+
+      # Check if coverage directory was created
+      if [ -d "coverage" ]; then
+        echo "✅ Coverage report generated in coverage/ directory"
+      fi
+
+  # Build Process
+  - id: build_application
+    name: Build Application
+    type: command
+    command: |
+      if [ ! -f "package.json" ]; then
+        echo "No package.json found, skipping build"
+        exit 0
+      fi
+
+      echo "Building application for {{ .env.NODE_ENV }} environment..."
+
+      if npm run --silent 2>/dev/null | grep -q "build"; then
+        npm run build
+      else
+        echo "No build script found"
+        exit 0
+      fi
+
+      # Check if build output was created
+      for build_dir in build dist out; do
+        if [ -d "$build_dir" ]; then
+          size=$(du -sh "$build_dir" | cut -f1)
+          files=$(find "$build_dir" -type f | wc -l)
+          echo "✅ Build completed: $build_dir/ ($size, $files files)"
+          break
+        fi
+      done
+
+  - id: optimize_bundle
+    name: Optimize Bundle Size
+    type: command
+    command: |
+      echo "Analyzing bundle size..."
+
+      # Look for bundle analyzer
+      if npm run --silent 2>/dev/null | grep -q "analyze"; then
+        npm run analyze
+      elif command -v webpack-bundle-analyzer >/dev/null 2>&1; then
+        # Find webpack stats file
+        for stats_file in build/static/js/*.json dist/stats.json; do
+          if [ -f "$stats_file" ]; then
+            echo "Analyzing bundle with $stats_file"
+            webpack-bundle-analyzer "$stats_file"
+            break
+          fi
+        done
+      else
+        echo "No bundle analyzer available"
+      fi
+
+  # Deployment Preparation
+  - id: prepare_deployment_package
+    name: Prepare Deployment Package
+    type: compress
+    path: "deploy/app-{{ now | date \"20060102-150405\" }}.tar.gz"
+    state: create
+    format: tar.gz
+    sources:
+      - "build"
+      - "package.json"
+      - "package-lock.json"
+    exclude:
+      - "node_modules"
+      - "src"
+      - "*.log"
+      - ".git"
+
+  # Cleanup
+  - id: cleanup_node_modules
+    name: Clean Node Modules
+    type: file
+    path: "node_modules"
+    state: absent
+
+  - id: cleanup_build_artifacts
+    name: Clean Build Artifacts
+    type: command
+    command: |
+      echo "Cleaning build artifacts..."
+
+      # Remove common build directories
+      for build_dir in build dist out .next; do
+        if [ -d "$build_dir" ]; then
+          rm -rf "$build_dir"
+          echo "Removed $build_dir/"
+        fi
+      done
+
+      # Remove coverage reports
+      if [ -d "coverage" ]; then
+        rm -rf coverage
+        echo "Removed coverage/"
+      fi
+
+      # Remove log files
+      find . -name "*.log" -type f -delete 2>/dev/null || true
+
+      echo "✅ Cleanup completed"

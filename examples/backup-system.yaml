@@ -1,0 +1,302 @@
+name: Automated Backup System
+description: Comprehensive backup system with rotation and verification
+version: "1.0"
+
+environment:
+  BACKUP_ROOT: "/backup"
+  SOURCE_DIRS: "/home,/etc,/var/www"
+  MAX_BACKUP_AGE_DAYS: "30"
+  NOTIFICATION_EMAIL: "admin@example.com"
+
+vars:
+  backup_date: "{{ now | date \"2006-01-02\" }}"
+  backup_time: "{{ now | date \"15-04-05\" }}"
+  backup_name: "system-backup-{{ .vars.backup_date }}-{{ .vars.backup_time }}"
+  backup_dir: "{{ .env.BACKUP_ROOT }}/{{ .vars.backup_date }}"
+  compression_level: "6"
+
+tasks:
+  # Pre-backup validation
+  - id: validate_environment
+    name: Validate Backup Environment
+    type: command
+    command: |
+      echo "Validating backup environment..."
+
+      # Check if backup root exists and is writable
+      if [ ! -d "{{ .env.BACKUP_ROOT }}" ]; then
+        echo "Creating backup root directory"
+        mkdir -p "{{ .env.BACKUP_ROOT }}"
+      fi
+
+      if [ ! -w "{{ .env.BACKUP_ROOT }}" ]; then
+        echo "ERROR: Backup root is not writable"
+        exit 1
+      fi
+
+      # Check available disk space (need at least 10GB)
+      available=$(df -BG "{{ .env.BACKUP_ROOT }}" | awk 'NR==2 {print $4}' | sed 's/G//')
+      if [ "$available" -lt 10 ]; then
+        echo "ERROR: Insufficient disk space (${available}GB available, 10GB required)"
+        exit 1
+      fi
+
+      echo "Environment validation passed"
+
+  - id: create_backup_directory
+    name: Create Daily Backup Directory
+    type: file
+    path: "{{ .vars.backup_dir }}"
+    state: directory
+    mode: "0750"
+    depends_on: [validate_environment]
+
+  - id: create_manifest
+    name: Create Backup Manifest
+    type: file
+    path: "{{ .vars.backup_dir }}/MANIFEST.txt"
+    state: file
+    content: |
+      Backup Manifest
+      ===============
+      Date: {{ now | date "2006-01-02 15:04:05 MST" }}
+      System: {{ env "HOSTNAME" }}
+      Backup Name: {{ .vars.backup_name }}
+      Source Directories: {{ .env.SOURCE_DIRS }}
+
+      Backup Process:
+    mode: "0644"
+    depends_on: [create_backup_directory]
+
+  # Backup individual directories in parallel
+  - id: backup_home
+    name: Backup Home Directories
+    type: compress
+    path: "{{ .vars.backup_dir }}/home-{{ .vars.backup_time }}.tar.gz"
+    state: create
+    format: tar.gz
+    sources: ["/home"]
+    exclude:
+      - "*.tmp"
+      - "*/Cache/*"
+      - "*/.cache/*"
+      - "*/Downloads/*"
+      - "*/Trash/*"
+      - "*/.local/share/Trash/*"
+    base_dir: "/"
+    depends_on: [create_manifest]
+
+  - id: backup_etc
+    name: Backup System Configuration
+    type: compress
+    path: "{{ .vars.backup_dir }}/etc-{{ .vars.backup_time }}.tar.gz"
+    state: create
+    format: tar.gz
+    sources: ["/etc"]
+    base_dir: "/"
+    depends_on: [create_manifest]
+
+  - id: backup_www
+    name: Backup Web Content
+    type: compress
+    path: "{{ .vars.backup_dir }}/www-{{ .vars.backup_time }}.tar.gz"
+    state: create
+    format: tar.gz
+    sources: ["/var/www"]
+    exclude:
+      - "*/logs/*"
+      - "*/cache/*"
+      - "*/tmp/*"
+    base_dir: "/var"
+    depends_on: [create_manifest]
+
+  # Database backup (runs in parallel with file backups)
+  - id: backup_databases
+    name: Backup System Databases
+    type: command
+    command: |
+      echo "Backing up databases..."
+
+      # Create database backup directory
+      mkdir -p "{{ .vars.backup_dir }}/databases"
+
+      # Backup MySQL databases (if MySQL is running)
+      if systemctl is-active --quiet mysql; then
+        echo "Backing up MySQL databases..."
+        mysqldump --all-databases --single-transaction --routines --triggers \
+          > "{{ .vars.backup_dir }}/databases/mysql-all-{{ .vars.backup_time }}.sql"
+        gzip "{{ .vars.backup_dir }}/databases/mysql-all-{{ .vars.backup_time }}.sql"
+      fi
+
+      # Backup PostgreSQL databases (if PostgreSQL is running)
+      if systemctl is-active --quiet postgresql; then
+        echo "Backing up PostgreSQL databases..."
+        sudo -u postgres pg_dumpall \
+          > "{{ .vars.backup_dir }}/databases/postgresql-all-{{ .vars.backup_time }}.sql"
+        gzip "{{ .vars.backup_dir }}/databases/postgresql-all-{{ .vars.backup_time }}.sql"
+      fi
+
+      echo "Database backup completed"
+    depends_on: [create_manifest]
+
+  # Verification phase (after all backups complete)
+  - id: verify_backups
+    name: Verify Backup Integrity
+    type: command
+    command: |
+      echo "Verifying backup integrity..."
+
+      backup_dir="{{ .vars.backup_dir }}"
+      errors=0
+
+      # Check each archive
+      for archive in "$backup_dir"/*.tar.gz; do
+        if [ -f "$archive" ]; then
+          echo "Checking $archive..."
+          if ! tar -tzf "$archive" >/dev/null 2>&1; then
+            echo "ERROR: Archive $archive is corrupted"
+            errors=$((errors + 1))
+          else
+            # Get file count and size
+            files=$(tar -tzf "$archive" | wc -l)
+            size=$(du -h "$archive" | cut -f1)
+            echo "  Archive OK: $files files, $size"
+          fi
+        fi
+      done
+
+      # Check database backups
+      for db_backup in "$backup_dir"/databases/*.sql.gz; do
+        if [ -f "$db_backup" ]; then
+          echo "Checking $db_backup..."
+          if ! gzip -t "$db_backup" 2>/dev/null; then
+            echo "ERROR: Database backup $db_backup is corrupted"
+            errors=$((errors + 1))
+          else
+            size=$(du -h "$db_backup" | cut -f1)
+            echo "  Database backup OK: $size"
+          fi
+        fi
+      done
+
+      if [ $errors -gt 0 ]; then
+        echo "ERROR: $errors backup verification errors found"
+        exit 1
+      fi
+
+      echo "All backups verified successfully"
+    depends_on: [backup_home, backup_etc, backup_www, backup_databases]
+
+  # Update manifest with results
+  - id: update_manifest
+    name: Update Backup Manifest
+    type: command
+    command: |
+      manifest_file="{{ .vars.backup_dir }}/MANIFEST.txt"
+
+      echo "" >> "$manifest_file"
+      echo "Backup Results:" >> "$manifest_file"
+      echo "===============" >> "$manifest_file"
+      echo "Completion Time: $(date)" >> "$manifest_file"
+      echo "Status: {{ .tasks.verify_backups.Status }}" >> "$manifest_file"
+      echo "" >> "$manifest_file"
+      echo "Archive Details:" >> "$manifest_file"
+
+      # Add details for each archive
+      for archive in "{{ .vars.backup_dir }}"/*.tar.gz; do
+        if [ -f "$archive" ]; then
+          filename=$(basename "$archive")
+          size=$(du -h "$archive" | cut -f1)
+          files=$(tar -tzf "$archive" | wc -l)
+          echo "  $filename: $size ($files files)" >> "$manifest_file"
+        fi
+      done
+
+      # Add database backup details
+      if [ -d "{{ .vars.backup_dir }}/databases" ]; then
+        echo "" >> "$manifest_file"
+        echo "Database Backups:" >> "$manifest_file"
+        for db_backup in "{{ .vars.backup_dir }}"/databases/*.sql.gz; do
+          if [ -f "$db_backup" ]; then
+            filename=$(basename "$db_backup")
+            size=$(du -h "$db_backup" | cut -f1)
+            echo "  $filename: $size" >> "$manifest_file"
+          fi
+        done
+      fi
+
+      echo "Manifest updated"
+    depends_on: [verify_backups]
+
+  # Cleanup old backups
+  - id: cleanup_old_backups
+    name: Clean Up Old Backups
+    type: command
+    command: |
+      echo "Cleaning up backups older than {{ .env.MAX_BACKUP_AGE_DAYS }} days..."
+
+      find "{{ .env.BACKUP_ROOT }}" -type d -name "20*-*-*" \
+        -mtime +{{ .env.MAX_BACKUP_AGE_DAYS }} -exec rm -rf {} + 2>/dev/null || true
+
+      # Count remaining backup directories
+      backup_count=$(find "{{ .env.BACKUP_ROOT }}" -type d -name "20*-*-*" | wc -l)
+      echo "Cleanup completed. $backup_count backup sets remaining."
+    depends_on: [update_manifest]
+    required: false  # Cleanup failure shouldn't fail the backup
+
+  # Generate backup report
+  - id: generate_report
+    name: Generate Backup Report
+    type: file
+    path: "{{ .vars.backup_dir }}/REPORT.txt"
+    state: file
+    content: |
+      BACKUP REPORT
+      =============
+
+      Backup Information:
+      - Date: {{ .vars.backup_date }}
+      - Time: {{ .vars.backup_time }}
+      - Name: {{ .vars.backup_name }}
+      - Location: {{ .vars.backup_dir }}
+
+      Task Results:
+      - Home backup: {{ .tasks.backup_home.Status }}
+      - System config backup: {{ .tasks.backup_etc.Status }}
+      - Web content backup: {{ .tasks.backup_www.Status }}
+      - Database backup: {{ .tasks.backup_databases.Status }}
+      - Verification: {{ .tasks.verify_backups.Status }}
+      - Cleanup: {{ .tasks.cleanup_old_backups.Status }}
+
+      Overall Status: {{ if eq .tasks.verify_backups.Status "success" }}SUCCESS{{ else }}FAILED{{ end }}
+
+      Next Steps:
+      {{ if eq .tasks.verify_backups.Status "success" -}}
+      - Backup completed successfully
+      - All archives verified
+      - Ready for offsite storage if needed
+      {{- else -}}
+      - Backup verification failed
+      - Check individual task logs
+      - Manual intervention may be required
+      {{- end }}
+    mode: "0644"
+    depends_on: [cleanup_old_backups]
+
+  # Final status notification
+  - id: status_notification
+    name: Send Status Notification
+    type: command
+    command: |
+      report_file="{{ .vars.backup_dir }}/REPORT.txt"
+
+      # In a real environment, this would send email/notification
+      echo "Backup Status Notification"
+      echo "=========================="
+      cat "$report_file"
+
+      echo ""
+      echo "Backup location: {{ .vars.backup_dir }}"
+      echo "Total backup size: $(du -sh '{{ .vars.backup_dir }}' | cut -f1)"
+    depends_on: [generate_report]
+    required: false  # Notification failure shouldn't fail the backup

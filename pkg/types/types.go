@@ -5,6 +5,7 @@ package types
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -50,6 +51,16 @@ const (
 	WorkflowPartialSuccess WorkflowStatus = "partial_success"
 	// WorkflowFailed indicates one or more required tasks failed
 	WorkflowFailed WorkflowStatus = "failed"
+)
+
+// Concurrency constraints for workflow execution
+const (
+	// MinConcurrency is the minimum allowed concurrent task execution
+	MinConcurrency = 1
+	// MaxConcurrency is the maximum allowed concurrent task execution
+	MaxConcurrency = 256
+	// DefaultConcurrency is the default number of concurrent tasks
+	DefaultConcurrency = 10
 )
 
 // Workflow represents a complete workflow definition
@@ -324,7 +335,6 @@ type DependencyResolver interface {
 	Clear()
 }
 
-
 // Logger provides structured logging interface
 type Logger interface {
 	// Debug logs a debug message
@@ -377,4 +387,20 @@ type LogContext interface {
 
 	// Logger returns the logger with the built context
 	Logger() Logger
+}
+
+// ValidateConcurrency validates a concurrency value and returns a valid value or an error.
+// If value is 0, returns DefaultConcurrency.
+// If value is negative or exceeds MaxConcurrency, returns an error.
+func ValidateConcurrency(value int) (int, error) {
+	if value == 0 {
+		return DefaultConcurrency, nil
+	}
+	if value < MinConcurrency {
+		return 0, fmt.Errorf("max_concurrency must be at least %d, got %d", MinConcurrency, value)
+	}
+	if value > MaxConcurrency {
+		return 0, fmt.Errorf("max_concurrency cannot exceed %d, got %d", MaxConcurrency, value)
+	}
+	return value, nil
 }

@@ -197,7 +197,10 @@ func TestExecutor_New(t *testing.T) {
 	contextManager := NewMockContextManager()
 
 	// Test with default config
-	executor := New(contextManager, nil)
+	executor, err := New(contextManager, nil)
+	if err != nil {
+		t.Fatalf("Failed to create executor: %v", err)
+	}
 	if executor.contextManager != contextManager {
 		t.Error("Expected context manager to be set")
 	}
@@ -213,7 +216,10 @@ func TestExecutor_New(t *testing.T) {
 		DryRun:         true,
 		MaxConcurrency: 5,
 	}
-	executor = New(contextManager, config)
+	executor, err = New(contextManager, config)
+	if err != nil {
+		t.Fatalf("Failed to create executor with custom config: %v", err)
+	}
 	if executor.dryRun != true {
 		t.Error("Expected dry run to be true")
 	}
@@ -224,7 +230,10 @@ func TestExecutor_New(t *testing.T) {
 
 func TestExecutor_RegisterTask(t *testing.T) {
 	contextManager := NewMockContextManager()
-	executor := New(contextManager, nil)
+	executor, err := New(contextManager, nil)
+	if err != nil {
+		t.Fatalf("Failed to create executor: %v", err)
+	}
 
 	mockExecutor := &MockTaskExecutor{}
 	executor.RegisterTask("test", mockExecutor)
@@ -240,7 +249,10 @@ func TestExecutor_RegisterTask(t *testing.T) {
 
 func TestExecutor_ExecuteTask_Success(t *testing.T) {
 	contextManager := NewMockContextManager()
-	executor := New(contextManager, nil)
+	executor, err := New(contextManager, nil)
+	if err != nil {
+		t.Fatalf("Failed to create executor: %v", err)
+	}
 
 	mockExecutor := &MockTaskExecutor{}
 	executor.RegisterTask("test", mockExecutor)
@@ -276,7 +288,10 @@ func TestExecutor_ExecuteTask_Success(t *testing.T) {
 
 func TestExecutor_ExecuteTask_Failure(t *testing.T) {
 	contextManager := NewMockContextManager()
-	executor := New(contextManager, nil)
+	executor, err := New(contextManager, nil)
+	if err != nil {
+		t.Fatalf("Failed to create executor: %v", err)
+	}
 
 	mockExecutor := &MockTaskExecutor{shouldFail: true}
 	executor.RegisterTask("test", mockExecutor)
@@ -303,7 +318,10 @@ func TestExecutor_ExecuteTask_Failure(t *testing.T) {
 
 func TestExecutor_ExecuteTask_UnknownType(t *testing.T) {
 	contextManager := NewMockContextManager()
-	executor := New(contextManager, nil)
+	executor, err := New(contextManager, nil)
+	if err != nil {
+		t.Fatalf("Failed to create executor: %v", err)
+	}
 
 	task := &types.TaskConfig{
 		ID:   "task1",
@@ -311,20 +329,23 @@ func TestExecutor_ExecuteTask_UnknownType(t *testing.T) {
 		Type: "unknown",
 	}
 
-	_, err := executor.ExecuteTask(context.Background(), task)
-	if err == nil {
+	_, execErr := executor.ExecuteTask(context.Background(), task)
+	if execErr == nil {
 		t.Error("Expected error for unknown task type")
 	}
 
-	if !strings.Contains(err.Error(), "no executor registered") {
-		t.Errorf("Expected registration error, got: %v", err)
+	if !strings.Contains(execErr.Error(), "no executor registered") {
+		t.Errorf("Expected registration error, got: %v", execErr)
 	}
 }
 
 func TestExecutor_ExecuteTask_DryRun(t *testing.T) {
 	contextManager := NewMockContextManager()
 	config := &Config{DryRun: true}
-	executor := New(contextManager, config)
+	executor, err := New(contextManager, config)
+	if err != nil {
+		t.Fatalf("Failed to create executor: %v", err)
+	}
 
 	mockExecutor := &MockTaskExecutor{}
 	executor.RegisterTask("test", mockExecutor)
@@ -351,7 +372,10 @@ func TestExecutor_ExecuteTask_DryRun(t *testing.T) {
 
 func TestExecutor_ExecuteTask_Condition_Skip(t *testing.T) {
 	contextManager := NewMockContextManager()
-	executor := New(contextManager, nil)
+	executor, err := New(contextManager, nil)
+	if err != nil {
+		t.Fatalf("Failed to create executor: %v", err)
+	}
 
 	mockExecutor := &MockTaskExecutor{}
 	executor.RegisterTask("test", mockExecutor)
@@ -379,7 +403,10 @@ func TestExecutor_ExecuteTask_Condition_Skip(t *testing.T) {
 
 func TestExecutor_ExecuteWorkflow_Parallel(t *testing.T) {
 	contextManager := NewMockContextManager()
-	executor := New(contextManager, nil)
+	executor, err := New(contextManager, nil)
+	if err != nil {
+		t.Fatalf("Failed to create executor: %v", err)
+	}
 
 	mockExecutor := &MockTaskExecutor{}
 	executor.RegisterTask("test", mockExecutor)
@@ -418,7 +445,10 @@ func TestExecutor_ExecuteWorkflow_Parallel(t *testing.T) {
 
 func TestExecutor_ExecuteWorkflow_Sequential(t *testing.T) {
 	contextManager := NewMockContextManager()
-	executor := New(contextManager, nil)
+	executor, err := New(contextManager, nil)
+	if err != nil {
+		t.Fatalf("Failed to create executor: %v", err)
+	}
 
 	mockExecutor := &MockTaskExecutor{}
 	executor.RegisterTask("test", mockExecutor)
@@ -450,7 +480,10 @@ func TestExecutor_ExecuteWorkflow_Sequential(t *testing.T) {
 
 func TestExecutor_ExecuteWorkflow_RequiredTaskFailure(t *testing.T) {
 	contextManager := NewMockContextManager()
-	executor := New(contextManager, nil)
+	executor, err := New(contextManager, nil)
+	if err != nil {
+		t.Fatalf("Failed to create executor: %v", err)
+	}
 
 	mockExecutor := &MockTaskExecutor{shouldFail: true}
 	executor.RegisterTask("test", mockExecutor)
@@ -482,7 +515,10 @@ func TestExecutor_ExecuteWorkflow_RequiredTaskFailure(t *testing.T) {
 
 func TestExecutor_ExecuteWorkflow_OptionalTaskFailure(t *testing.T) {
 	contextManager := NewMockContextManager()
-	executor := New(contextManager, nil)
+	executor, err := New(contextManager, nil)
+	if err != nil {
+		t.Fatalf("Failed to create executor: %v", err)
+	}
 
 	// First task fails (optional), second task succeeds
 	executor.RegisterTask("fail", &MockTaskExecutor{shouldFail: true})

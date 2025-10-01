@@ -13,12 +13,12 @@ import (
 
 // ValidationError represents a template validation error
 type ValidationError struct {
-	TaskID      string
-	TaskName    string
-	Field       string
-	Template    string
-	Message     string
-	Suggestion  string
+	TaskID     string
+	TaskName   string
+	Field      string
+	Template   string
+	Message    string
+	Suggestion string
 }
 
 func (e *ValidationError) Error() string {
@@ -100,7 +100,6 @@ func checkValueForTaskReferences(task *types.TaskConfig, field string, value int
 
 	return errors
 }
-
 
 // checkTaskReferences checks if task references in templates point to valid tasks
 func checkTaskReferences(task *types.TaskConfig, field string, templateStr string, availableTaskIDs map[string]bool) []error {

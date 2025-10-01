@@ -22,19 +22,19 @@ type Executor struct{}
 
 // FileConfig represents the configuration for a file task
 type FileConfig struct {
-	Path        string                 `yaml:"path" json:"path"`
-	State       string                 `yaml:"state,omitempty" json:"state,omitempty"`
-	Source      string                 `yaml:"source,omitempty" json:"source,omitempty"`
-	Content     string                 `yaml:"content,omitempty" json:"content,omitempty"`
-	Mode        string                 `yaml:"mode,omitempty" json:"mode,omitempty"`
-	Owner       string                 `yaml:"owner,omitempty" json:"owner,omitempty"`
-	Group       string                 `yaml:"group,omitempty" json:"group,omitempty"`
-	Backup      bool                   `yaml:"backup,omitempty" json:"backup,omitempty"`
-	BackupExt   string                 `yaml:"backup_ext,omitempty" json:"backup_ext,omitempty"`
-	CreateDirs  bool                   `yaml:"create_dirs,omitempty" json:"create_dirs,omitempty"`
-	Force       bool                   `yaml:"force,omitempty" json:"force,omitempty"`
-	Template    bool                   `yaml:"template,omitempty" json:"template,omitempty"`
-	Attributes  map[string]interface{} `yaml:"attributes,omitempty" json:"attributes,omitempty"`
+	Path       string                 `yaml:"path" json:"path"`
+	State      string                 `yaml:"state,omitempty" json:"state,omitempty"`
+	Source     string                 `yaml:"source,omitempty" json:"source,omitempty"`
+	Content    string                 `yaml:"content,omitempty" json:"content,omitempty"`
+	Mode       string                 `yaml:"mode,omitempty" json:"mode,omitempty"`
+	Owner      string                 `yaml:"owner,omitempty" json:"owner,omitempty"`
+	Group      string                 `yaml:"group,omitempty" json:"group,omitempty"`
+	Backup     bool                   `yaml:"backup,omitempty" json:"backup,omitempty"`
+	BackupExt  string                 `yaml:"backup_ext,omitempty" json:"backup_ext,omitempty"`
+	CreateDirs bool                   `yaml:"create_dirs,omitempty" json:"create_dirs,omitempty"`
+	Force      bool                   `yaml:"force,omitempty" json:"force,omitempty"`
+	Template   bool                   `yaml:"template,omitempty" json:"template,omitempty"`
+	Attributes map[string]interface{} `yaml:"attributes,omitempty" json:"attributes,omitempty"`
 }
 
 // FileState constants

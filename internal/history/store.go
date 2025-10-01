@@ -23,21 +23,21 @@ type Store struct {
 
 // ExecutionRecord represents a complete execution record
 type ExecutionRecord struct {
-	ID              string                     `json:"id"`
-	WorkflowName    string                     `json:"workflow_name"`
-	WorkflowPath    string                     `json:"workflow_path,omitempty"`
-	Status          types.WorkflowStatus       `json:"status"`
-	StartTime       time.Time                  `json:"start_time"`
-	EndTime         time.Time                  `json:"end_time"`
-	Duration        time.Duration              `json:"duration"`
-	TriggerType     string                     `json:"trigger_type"` // manual, webhook, scheduled
-	TriggerData     map[string]interface{}     `json:"trigger_data,omitempty"`
-	Environment     map[string]string          `json:"environment,omitempty"`
-	Variables       map[string]interface{}     `json:"variables,omitempty"`
-	TaskResults     map[string]*types.TaskResult `json:"task_results"`
-	ErrorMessage    string                     `json:"error_message,omitempty"`
-	ValidationErrors []string                  `json:"validation_errors,omitempty"`
-	Metadata        map[string]interface{}     `json:"metadata,omitempty"`
+	ID               string                       `json:"id"`
+	WorkflowName     string                       `json:"workflow_name"`
+	WorkflowPath     string                       `json:"workflow_path,omitempty"`
+	Status           types.WorkflowStatus         `json:"status"`
+	StartTime        time.Time                    `json:"start_time"`
+	EndTime          time.Time                    `json:"end_time"`
+	Duration         time.Duration                `json:"duration"`
+	TriggerType      string                       `json:"trigger_type"` // manual, webhook, scheduled
+	TriggerData      map[string]interface{}       `json:"trigger_data,omitempty"`
+	Environment      map[string]string            `json:"environment,omitempty"`
+	Variables        map[string]interface{}       `json:"variables,omitempty"`
+	TaskResults      map[string]*types.TaskResult `json:"task_results"`
+	ErrorMessage     string                       `json:"error_message,omitempty"`
+	ValidationErrors []string                     `json:"validation_errors,omitempty"`
+	Metadata         map[string]interface{}       `json:"metadata,omitempty"`
 }
 
 // ExecutionSummary provides a lightweight summary of an execution
@@ -66,18 +66,18 @@ type QueryOptions struct {
 
 // HistoryStats provides statistical information about execution history
 type HistoryStats struct {
-	TotalExecutions  int                          `json:"total_executions"`
-	SuccessfulRuns   int                          `json:"successful_runs"`
-	FailedRuns       int                          `json:"failed_runs"`
-	PartialRuns      int                          `json:"partial_runs"`
-	SuccessRate      float64                      `json:"success_rate"`
-	AverageDuration  time.Duration                `json:"average_duration"`
-	WorkflowCounts   map[string]int               `json:"workflow_counts"`
-	StatusCounts     map[types.WorkflowStatus]int `json:"status_counts"`
-	TriggerCounts    map[string]int               `json:"trigger_counts"`
-	DailyStats       map[string]int               `json:"daily_stats"` // YYYY-MM-DD -> count
-	FirstExecution   *time.Time                   `json:"first_execution,omitempty"`
-	LastExecution    *time.Time                   `json:"last_execution,omitempty"`
+	TotalExecutions int                          `json:"total_executions"`
+	SuccessfulRuns  int                          `json:"successful_runs"`
+	FailedRuns      int                          `json:"failed_runs"`
+	PartialRuns     int                          `json:"partial_runs"`
+	SuccessRate     float64                      `json:"success_rate"`
+	AverageDuration time.Duration                `json:"average_duration"`
+	WorkflowCounts  map[string]int               `json:"workflow_counts"`
+	StatusCounts    map[types.WorkflowStatus]int `json:"status_counts"`
+	TriggerCounts   map[string]int               `json:"trigger_counts"`
+	DailyStats      map[string]int               `json:"daily_stats"` // YYYY-MM-DD -> count
+	FirstExecution  *time.Time                   `json:"first_execution,omitempty"`
+	LastExecution   *time.Time                   `json:"last_execution,omitempty"`
 }
 
 // New creates a new execution history store

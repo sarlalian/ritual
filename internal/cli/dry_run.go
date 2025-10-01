@@ -61,7 +61,10 @@ func dryRunWorkflow(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create orchestrator
-	orch := orchestrator.New(orchConfig)
+	orch, err := orchestrator.New(orchConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create orchestrator: %w", err)
+	}
 
 	// Build environment variables list
 	envVars := []string{}

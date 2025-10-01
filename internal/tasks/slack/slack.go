@@ -52,20 +52,20 @@ type SlackConfig struct {
 
 // slackPayload represents the JSON payload sent to Slack
 type slackPayload struct {
-	Channel     string              `json:"channel,omitempty"`
-	Username    string              `json:"username,omitempty"`
-	Text        string              `json:"text,omitempty"`
-	IconEmoji   string              `json:"icon_emoji,omitempty"`
-	IconURL     string              `json:"icon_url,omitempty"`
-	Attachments []slackAttachment   `json:"attachments,omitempty"`
+	Channel     string            `json:"channel,omitempty"`
+	Username    string            `json:"username,omitempty"`
+	Text        string            `json:"text,omitempty"`
+	IconEmoji   string            `json:"icon_emoji,omitempty"`
+	IconURL     string            `json:"icon_url,omitempty"`
+	Attachments []slackAttachment `json:"attachments,omitempty"`
 }
 
 type slackAttachment struct {
-	Color     string        `json:"color,omitempty"`
-	Title     string        `json:"title,omitempty"`
-	TitleLink string        `json:"title_link,omitempty"`
-	Text      string        `json:"text,omitempty"`
-	Fields    []slackField  `json:"fields,omitempty"`
+	Color     string       `json:"color,omitempty"`
+	Title     string       `json:"title,omitempty"`
+	TitleLink string       `json:"title_link,omitempty"`
+	Text      string       `json:"text,omitempty"`
+	Fields    []slackField `json:"fields,omitempty"`
 }
 
 type slackField struct {

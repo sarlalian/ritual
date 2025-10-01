@@ -25,12 +25,12 @@ func (m *MockContextManager) EvaluateString(templateStr string) (string, error) 
 }
 
 func (m *MockContextManager) Initialize(workflow *types.Workflow, envVars []string) error { return nil }
-func (m *MockContextManager) GetContext() *types.WorkflowContext                         { return nil }
-func (m *MockContextManager) GetVariable(name string) (interface{}, error)              { return nil, nil }
-func (m *MockContextManager) SetVariable(name string, value interface{}) error          { return nil }
-func (m *MockContextManager) GetEnvironment(name, defaultValue string) string           { return defaultValue }
-func (m *MockContextManager) SetEnvironment(name, value string) error                   { return nil }
-func (m *MockContextManager) RegisterTaskResult(taskResult *types.TaskResult) error     { return nil }
+func (m *MockContextManager) GetContext() *types.WorkflowContext                          { return nil }
+func (m *MockContextManager) GetVariable(name string) (interface{}, error)                { return nil, nil }
+func (m *MockContextManager) SetVariable(name string, value interface{}) error            { return nil }
+func (m *MockContextManager) GetEnvironment(name, defaultValue string) string             { return defaultValue }
+func (m *MockContextManager) SetEnvironment(name, value string) error                     { return nil }
+func (m *MockContextManager) RegisterTaskResult(taskResult *types.TaskResult) error       { return nil }
 func (m *MockContextManager) GetTaskResult(identifier string) (*types.TaskResult, error) {
 	return nil, nil
 }

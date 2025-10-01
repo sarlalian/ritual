@@ -16,11 +16,11 @@ import (
 
 // Resolver handles importing and resolving external workflows
 type Resolver struct {
-	fs        afero.Fs
-	parser    types.Parser
-	cache     map[string]*types.Workflow
-	basePath  string
-	maxDepth  int
+	fs       afero.Fs
+	parser   types.Parser
+	cache    map[string]*types.Workflow
+	basePath string
+	maxDepth int
 }
 
 // Config holds configuration for the import resolver

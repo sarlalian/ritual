@@ -48,11 +48,14 @@ tasks:
 	}
 
 	// Create orchestrator
-	orch := orchestrator.New(&orchestrator.Config{
+	orch, err := orchestrator.New(&orchestrator.Config{
 		DryRun:         false,
 		MaxConcurrency: 4,
 		Verbose:        true,
 	})
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	// Execute workflow
 	ctx := context.Background()
@@ -169,11 +172,14 @@ tasks:
 	}
 
 	// Create orchestrator
-	orch := orchestrator.New(&orchestrator.Config{
+	orch, err := orchestrator.New(&orchestrator.Config{
 		DryRun:         false,
 		MaxConcurrency: 4,
 		Verbose:        true,
 	})
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	// Execute workflow
 	ctx := context.Background()
@@ -249,11 +255,14 @@ tasks:
 	}
 
 	// Create orchestrator in dry-run mode
-	orch := orchestrator.New(&orchestrator.Config{
+	orch, err := orchestrator.New(&orchestrator.Config{
 		DryRun:         true,
 		MaxConcurrency: 4,
 		Verbose:        true,
 	})
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	// Execute workflow
 	ctx := context.Background()
@@ -315,11 +324,14 @@ tasks:
 	}
 
 	// Create orchestrator
-	orch := orchestrator.New(&orchestrator.Config{
+	orch, err := orchestrator.New(&orchestrator.Config{
 		DryRun:         true,
 		MaxConcurrency: 4,
 		Verbose:        true,
 	})
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	// Execute workflow
 	ctx := context.Background()
@@ -379,11 +391,14 @@ tasks:
 	}
 
 	// Create orchestrator
-	orch := orchestrator.New(&orchestrator.Config{
+	orch, err := orchestrator.New(&orchestrator.Config{
 		DryRun:         false,
 		MaxConcurrency: 4,
 		Verbose:        true,
 	})
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	// Execute workflow
 	ctx := context.Background()

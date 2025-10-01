@@ -21,7 +21,10 @@ func TestOrchestrator_New(t *testing.T) {
 		Verbose:        true,
 	}
 
-	orchestrator := New(config)
+	orchestrator, err := New(config)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
 	if orchestrator == nil {
 		t.Error("Expected orchestrator to be created")
 	}
@@ -53,7 +56,10 @@ func TestOrchestrator_New(t *testing.T) {
 }
 
 func TestOrchestrator_ValidateWorkflow(t *testing.T) {
-	orchestrator := New(nil)
+	orchestrator, err := New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	// Create a valid workflow
 	validWorkflow := &types.Workflow{
@@ -89,16 +95,19 @@ func TestOrchestrator_ValidateWorkflow(t *testing.T) {
 }
 
 func TestOrchestrator_ValidateWorkflow_InvalidTask(t *testing.T) {
-	orchestrator := New(nil)
+	orchestrator, err := New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	// Create a workflow with invalid task
 	invalidWorkflow := &types.Workflow{
 		Name: "Invalid Workflow",
 		Tasks: []types.TaskConfig{
 			{
-				ID:   "task1",
-				Name: "Invalid Command",
-				Type: "command",
+				ID:     "task1",
+				Name:   "Invalid Command",
+				Type:   "command",
 				Config: map[string]interface{}{
 					// Missing command
 				},
@@ -130,7 +139,10 @@ func TestOrchestrator_ValidateWorkflow_InvalidTask(t *testing.T) {
 }
 
 func TestOrchestrator_ValidateWorkflow_CircularDependency(t *testing.T) {
-	orchestrator := New(nil)
+	orchestrator, err := New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	// Create a workflow with circular dependencies
 	circularWorkflow := &types.Workflow{
@@ -172,7 +184,10 @@ func TestOrchestrator_ValidateWorkflow_CircularDependency(t *testing.T) {
 }
 
 func TestOrchestrator_ExecuteWorkflowYAML(t *testing.T) {
-	orchestrator := New(&Config{DryRun: true})
+	orchestrator, err := New(&Config{DryRun: true})
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	yamlContent := []byte(`
 name: Test Workflow
@@ -207,7 +222,10 @@ tasks:
 }
 
 func TestOrchestrator_ExecuteWorkflowYAML_ParseError(t *testing.T) {
-	orchestrator := New(nil)
+	orchestrator, err := New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	invalidYaml := []byte(`
 name: Test Workflow
@@ -234,7 +252,10 @@ tasks:
 }
 
 func TestOrchestrator_ExecuteWorkflowFile(t *testing.T) {
-	orchestrator := New(&Config{DryRun: true})
+	orchestrator, err := New(&Config{DryRun: true})
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	// Create a temporary workflow file
 	tmpDir := t.TempDir()
@@ -249,8 +270,7 @@ tasks:
     command: echo "Hello from file"
 `
 
-	err := os.WriteFile(workflowFile, []byte(workflowContent), 0644)
-	if err != nil {
+	if err := os.WriteFile(workflowFile, []byte(workflowContent), 0644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
@@ -273,7 +293,10 @@ tasks:
 }
 
 func TestOrchestrator_ExecuteWorkflowFile_NotFound(t *testing.T) {
-	orchestrator := New(nil)
+	orchestrator, err := New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	result, err := orchestrator.ExecuteWorkflowFile(context.Background(), "/nonexistent/file.yaml", nil)
 	if err != nil {
@@ -290,7 +313,10 @@ func TestOrchestrator_ExecuteWorkflowFile_NotFound(t *testing.T) {
 }
 
 func TestOrchestrator_ExecuteWorkflow_WithVariables(t *testing.T) {
-	orchestrator := New(&Config{DryRun: true})
+	orchestrator, err := New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	workflow := &types.Workflow{
 		Name: "Variable Test Workflow",
@@ -339,7 +365,10 @@ func TestOrchestrator_ExecuteWorkflow_WithVariables(t *testing.T) {
 }
 
 func TestOrchestrator_ExecuteWorkflow_WithEnvironment(t *testing.T) {
-	orchestrator := New(&Config{DryRun: true})
+	orchestrator, err := New(&Config{DryRun: true})
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	workflow := &types.Workflow{
 		Name: "Environment Test Workflow",
@@ -375,7 +404,10 @@ func TestOrchestrator_ExecuteWorkflow_WithEnvironment(t *testing.T) {
 }
 
 func TestOrchestrator_GetExecutionPlan(t *testing.T) {
-	orchestrator := New(nil)
+	orchestrator, err := New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	workflow := &types.Workflow{
 		Name: "Plan Test Workflow",
@@ -444,7 +476,10 @@ func TestOrchestrator_GetExecutionPlan(t *testing.T) {
 }
 
 func TestOrchestrator_GetTaskRegistry(t *testing.T) {
-	orchestrator := New(nil)
+	orchestrator, err := New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	registry := orchestrator.GetTaskRegistry()
 	if registry == nil {
@@ -470,7 +505,10 @@ func TestOrchestrator_GetTaskRegistry(t *testing.T) {
 }
 
 func TestOrchestrator_GetContextManager(t *testing.T) {
-	orchestrator := New(nil)
+	orchestrator, err := New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	contextManager := orchestrator.GetContextManager()
 	if contextManager == nil {
@@ -479,7 +517,10 @@ func TestOrchestrator_GetContextManager(t *testing.T) {
 }
 
 func TestOrchestrator_ValidateWorkflowFile(t *testing.T) {
-	orchestrator := New(nil)
+	orchestrator, err := New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	// Create a temporary workflow file
 	tmpDir := t.TempDir()
@@ -498,8 +539,7 @@ tasks:
     # Missing command
 `
 
-	err := os.WriteFile(workflowFile, []byte(workflowContent), 0644)
-	if err != nil {
+	if err := os.WriteFile(workflowFile, []byte(workflowContent), 0644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
@@ -531,7 +571,10 @@ tasks:
 }
 
 func TestOrchestrator_ExecuteWorkflow_Timeout(t *testing.T) {
-	orchestrator := New(&Config{DryRun: false})
+	orchestrator, err := New(&Config{DryRun: false})
+	if err != nil {
+		t.Fatalf("Failed to create orchestrator: %v", err)
+	}
 
 	workflow := &types.Workflow{
 		Name: "Timeout Test Workflow",
@@ -570,7 +613,7 @@ func TestOrchestrator_ExecuteWorkflow_Timeout(t *testing.T) {
 		t.Errorf("Expected task to fail due to timeout, got: %v", taskResult.Status)
 	}
 
-	if !strings.Contains(taskResult.Error, "timeout") {
-		t.Errorf("Expected timeout error, got: %v", taskResult.Error)
+	if !strings.Contains(taskResult.Message, "timed out") {
+		t.Errorf("Expected timeout message, got: %v", taskResult.Message)
 	}
 }

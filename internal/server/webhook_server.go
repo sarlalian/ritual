@@ -38,26 +38,26 @@ type Config struct {
 
 // WebhookPayload represents an incoming webhook payload
 type WebhookPayload struct {
-	Event      string                 `json:"event"`
-	Repository string                 `json:"repository,omitempty"`
-	Branch     string                 `json:"branch,omitempty"`
-	Workflow   string                 `json:"workflow,omitempty"`
-	Variables  map[string]interface{} `json:"variables,omitempty"`
-	Environment map[string]string     `json:"environment,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Event       string                 `json:"event"`
+	Repository  string                 `json:"repository,omitempty"`
+	Branch      string                 `json:"branch,omitempty"`
+	Workflow    string                 `json:"workflow,omitempty"`
+	Variables   map[string]interface{} `json:"variables,omitempty"`
+	Environment map[string]string      `json:"environment,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ExecutionStatus tracks workflow execution status
 type ExecutionStatus struct {
-	ID          string                     `json:"id"`
-	Workflow    string                     `json:"workflow"`
-	Status      string                     `json:"status"`
-	StartTime   time.Time                  `json:"start_time"`
-	EndTime     *time.Time                 `json:"end_time,omitempty"`
-	Duration    *time.Duration             `json:"duration,omitempty"`
-	Result      *types.Result              `json:"result,omitempty"`
-	Payload     *WebhookPayload           `json:"payload,omitempty"`
-	Error       string                     `json:"error,omitempty"`
+	ID        string          `json:"id"`
+	Workflow  string          `json:"workflow"`
+	Status    string          `json:"status"`
+	StartTime time.Time       `json:"start_time"`
+	EndTime   *time.Time      `json:"end_time,omitempty"`
+	Duration  *time.Duration  `json:"duration,omitempty"`
+	Result    *types.Result   `json:"result,omitempty"`
+	Payload   *WebhookPayload `json:"payload,omitempty"`
+	Error     string          `json:"error,omitempty"`
 }
 
 // New creates a new webhook server
@@ -234,7 +234,7 @@ func (ws *WebhookServer) handleCustomWebhook(w http.ResponseWriter, r *http.Requ
 	if err := json.Unmarshal(body, &payload); err != nil {
 		// If standard parsing fails, create a generic payload
 		payload = WebhookPayload{
-			Event:    "custom",
+			Event: "custom",
 			Metadata: map[string]interface{}{
 				"raw_payload": string(body),
 				"headers":     r.Header,

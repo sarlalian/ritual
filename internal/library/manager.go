@@ -47,11 +47,11 @@ type TaskInfo struct {
 
 // LibraryRegistry holds information about all discovered libraries
 type LibraryRegistry struct {
-	Libraries     []*LibraryInfo          `json:"libraries"`
-	TaskIndex     map[string][]*TaskInfo  `json:"task_index"` // Task type -> list of tasks
-	LibraryIndex  map[string]*LibraryInfo `json:"library_index"` // Library name -> library info
-	LastScanned   time.Time               `json:"last_scanned"`
-	ScanDuration  time.Duration           `json:"scan_duration"`
+	Libraries    []*LibraryInfo          `json:"libraries"`
+	TaskIndex    map[string][]*TaskInfo  `json:"task_index"`    // Task type -> list of tasks
+	LibraryIndex map[string]*LibraryInfo `json:"library_index"` // Library name -> library info
+	LastScanned  time.Time               `json:"last_scanned"`
+	ScanDuration time.Duration           `json:"scan_duration"`
 }
 
 // New creates a new library manager

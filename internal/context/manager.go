@@ -535,6 +535,7 @@ func (m *Manager) loadVariableFiles(variableFiles []string) error {
 
 	return nil
 }
+
 // GetTemplateEngine returns the template engine used by this context manager
 func (m *Manager) GetTemplateEngine() types.TemplateEngine {
 	return m.templateEngine

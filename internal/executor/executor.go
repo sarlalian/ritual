@@ -30,12 +30,18 @@ type Config struct {
 }
 
 // New creates a new executor with the given context manager
-func New(contextManager types.ContextManager, config *Config) *Executor {
+func New(contextManager types.ContextManager, config *Config) (*Executor, error) {
 	if config == nil {
 		config = &Config{
 			DryRun:         false,
-			MaxConcurrency: 10, // Default parallelism
+			MaxConcurrency: types.DefaultConcurrency,
 		}
+	}
+
+	// Validate MaxConcurrency
+	maxConcurrency, err := types.ValidateConcurrency(config.MaxConcurrency)
+	if err != nil {
+		return nil, fmt.Errorf("invalid executor configuration: %w", err)
 	}
 
 	return &Executor{
@@ -43,8 +49,8 @@ func New(contextManager types.ContextManager, config *Config) *Executor {
 		taskRegistry:   make(map[string]types.TaskExecutor),
 		logger:         config.Logger,
 		dryRun:         config.DryRun,
-		maxConcurrency: config.MaxConcurrency,
-	}
+		maxConcurrency: maxConcurrency,
+	}, nil
 }
 
 // RegisterTask registers a task executor for a specific task type
@@ -94,13 +100,28 @@ func (e *Executor) ExecuteWorkflow(ctx context.Context, workflow *types.Workflow
 
 	// Determine final status
 	result.Status = types.WorkflowSuccess
+	hasFailures := false
+	hasSkipped := false
+	hasSuccess := false
+
 	for _, taskResult := range result.Tasks {
 		if taskResult.Status == types.TaskFailed {
-			result.Status = types.WorkflowFailed
-			break
+			hasFailures = true
 		} else if taskResult.Status == types.TaskSkipped {
-			result.Status = types.WorkflowPartialSuccess
+			hasSkipped = true
+		} else if taskResult.Status == types.TaskSuccess {
+			hasSuccess = true
 		}
+	}
+
+	if hasFailures {
+		result.Status = types.WorkflowFailed
+	} else if hasSkipped && !hasSuccess {
+		// All tasks were skipped (e.g., dry run mode) - still success
+		result.Status = types.WorkflowSuccess
+	} else if hasSkipped {
+		// Some tasks skipped, some succeeded - partial success
+		result.Status = types.WorkflowPartialSuccess
 	}
 
 	result.EndTime = time.Now()
@@ -153,7 +174,7 @@ func (e *Executor) ExecuteTask(ctx context.Context, task *types.TaskConfig) (*ty
 		result.Stdout = execResult.Stdout
 		result.Stderr = execResult.Stderr
 		result.ReturnCode = execResult.ReturnCode
-		result.Output = execResult.Output  // Copy output field
+		result.Output = execResult.Output // Copy output field
 		result.EndTime = time.Now()
 		result.Duration = result.EndTime.Sub(result.StartTime)
 

@@ -26,9 +26,9 @@ type TaskNode struct {
 
 // DependencyResolver handles dependency resolution and execution planning
 type DependencyResolver struct {
-	nodes     map[string]*TaskNode // Task ID/Name -> TaskNode (unified lookup)
-	layers    []*ExecutionLayer
-	tasks     []types.TaskConfig   // Original task list for reference
+	nodes  map[string]*TaskNode // Task ID/Name -> TaskNode (unified lookup)
+	layers []*ExecutionLayer
+	tasks  []types.TaskConfig // Original task list for reference
 }
 
 // New creates a new dependency resolver

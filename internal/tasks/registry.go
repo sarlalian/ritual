@@ -36,39 +36,39 @@ func New() *Registry {
 func (r *Registry) RegisterBuiltinTasks() {
 	// Command task for running shell commands and scripts
 	r.Register("command", command.New())
-	r.Register("shell", command.New())    // Alias
-	r.Register("script", command.New())   // Alias
+	r.Register("shell", command.New())  // Alias
+	r.Register("script", command.New()) // Alias
 
 	// File task for file system operations
 	r.Register("file", file.New())
-	r.Register("copy", file.New())        // Alias
-	r.Register("template", file.New())    // Alias
+	r.Register("copy", file.New())     // Alias
+	r.Register("template", file.New()) // Alias
 
 	// Compress task for archive operations
 	r.Register("compress", compress.New())
-	r.Register("archive", compress.New()) // Alias
+	r.Register("archive", compress.New())   // Alias
 	r.Register("unarchive", compress.New()) // Alias
 
 	// Checksum task for hash calculation and verification
 	r.Register("checksum", checksum.New())
-	r.Register("hash", checksum.New())      // Alias
-	r.Register("verify", checksum.New())    // Alias
+	r.Register("hash", checksum.New())   // Alias
+	r.Register("verify", checksum.New()) // Alias
 
 	// SSH task for remote command execution
 	r.Register("ssh", ssh.New())
-	r.Register("remote", ssh.New())         // Alias
+	r.Register("remote", ssh.New()) // Alias
 
 	// Email task for sending emails via SMTP
 	r.Register("email", email.New())
-	r.Register("mail", email.New())         // Alias
+	r.Register("mail", email.New()) // Alias
 
 	// Slack task for posting messages to Slack
 	r.Register("slack", slack.New())
-	r.Register("notify", slack.New())       // Alias
+	r.Register("notify", slack.New()) // Alias
 
 	// Debug task for logging templated strings
 	r.Register("debug", debug.New())
-	r.Register("log", debug.New())          // Alias
+	r.Register("log", debug.New()) // Alias
 }
 
 // Register adds a task executor for a specific task type

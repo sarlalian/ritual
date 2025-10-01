@@ -74,14 +74,14 @@ func (e *Engine) addCustomFunctions() {
 		},
 
 		// String manipulation functions
-		"contains": strings.Contains,
+		"contains":  strings.Contains,
 		"hasPrefix": strings.HasPrefix,
 		"hasSuffix": strings.HasSuffix,
-		"split": strings.Split,
-		"join": strings.Join,
-		"trim": strings.TrimSpace,
-		"toLower": strings.ToLower,
-		"toUpper": strings.ToUpper,
+		"split":     strings.Split,
+		"join":      strings.Join,
+		"trim":      strings.TrimSpace,
+		"toLower":   strings.ToLower,
+		"toUpper":   strings.ToUpper,
 
 		// Context access functions (will be populated per evaluation)
 		"getVar": func(name string) interface{} {

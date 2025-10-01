@@ -44,15 +44,21 @@ type Config struct {
 	HistoryDir     string
 }
 
-
 // New creates a new workflow orchestrator
-func New(config *Config) *Orchestrator {
+func New(config *Config) (*Orchestrator, error) {
 	if config == nil {
 		config = &Config{
-			MaxConcurrency: 10,
+			MaxConcurrency: types.DefaultConcurrency,
 			HistoryDir:     "./history",
 		}
 	}
+
+	// Validate MaxConcurrency
+	maxConcurrency, err := types.ValidateConcurrency(config.MaxConcurrency)
+	if err != nil {
+		return nil, fmt.Errorf("invalid orchestrator configuration: %w", err)
+	}
+	config.MaxConcurrency = maxConcurrency
 
 	// Set default history directory if not specified
 	if config.HistoryDir == "" {
@@ -74,7 +80,10 @@ func New(config *Config) *Orchestrator {
 		MaxConcurrency: config.MaxConcurrency,
 		Logger:         config.Logger,
 	}
-	exec := executor.New(ctxManager, executorConfig)
+	exec, err := executor.New(ctxManager, executorConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create executor: %w", err)
+	}
 
 	// Register all tasks to executor
 	taskRegistry.RegisterToExecutor(exec)
@@ -89,7 +98,7 @@ func New(config *Config) *Orchestrator {
 
 	// Initialize history store
 	historyStore := history.New(config.HistoryDir, 10000) // Keep up to 10k records
-	historyStore.Initialize() // Create directory if needed
+	historyStore.Initialize()                             // Create directory if needed
 
 	return &Orchestrator{
 		parser:         parserInstance,
@@ -101,7 +110,7 @@ func New(config *Config) *Orchestrator {
 		historyStore:   historyStore,
 		logger:         config.Logger,
 		config:         config,
-	}
+	}, nil
 }
 
 // ExecuteWorkflowFile executes a workflow from a YAML file

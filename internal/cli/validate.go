@@ -46,7 +46,11 @@ func validateWorkflow(cmd *cobra.Command, args []string) error {
 		Logger:         logger,
 		Verbose:        verboseMode,
 	}
-	orch := orchestrator.New(orchConfig)
+	orch, err := orchestrator.New(orchConfig)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to create orchestrator")
+		return err
+	}
 
 	// Validate workflow
 	result, err := orch.ValidateWorkflowFile(workflowPath)

@@ -119,7 +119,9 @@ func (o *Orchestrator) ExecuteWorkflowFile(ctx context.Context, filename string,
 	// Update context manager with workflow directory for variable file loading
 	workflowDir := filepath.Dir(filename)
 	if workflowDir != "." {
-		o.contextManager = contextManager.NewWithWorkflowDir(o.contextManager.(*contextManager.Manager).GetTemplateEngine(), workflowDir)
+		if mgr, ok := o.contextManager.(*contextManager.Manager); ok {
+			mgr.SetWorkflowDir(workflowDir)
+		}
 	}
 
 	return o.ExecuteWorkflowWithPath(ctx, workflow, envVars, filename)

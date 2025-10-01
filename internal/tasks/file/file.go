@@ -578,6 +578,13 @@ func (e *Executor) updatePermissions(path string, info os.FileInfo, config *File
 		result.Output["group"] = config.Group
 	}
 
+	// Set success status if no errors occurred
+	if result.Status == types.TaskRunning {
+		result.Status = types.TaskSuccess
+		result.Message = "Permissions updated successfully"
+		result.Output["changed"] = false
+	}
+
 	return result
 }
 

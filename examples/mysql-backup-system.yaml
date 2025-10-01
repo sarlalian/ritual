@@ -3,7 +3,7 @@ description: MySQL Automated Backup System
 version: "1.0"
 
 environment:
-  DATABASE: "genius"
+  DATABASE: "hgetest"
   NOTIFICATION_EMAIL: "wfife@nsgmail.com"
   BACKUP_ROOT: "/tmp/backups"
   MYSQL_ROOT: "root"
@@ -12,7 +12,7 @@ environment:
 vars:
   backup_date: "{{ now | date \"2006-01-02\" }}"
   backup_time: "{{ now | date \"15-04-05\" }}"
-  backup_name: "{{ .vars.DATABASE }}-{{ .vars.backup_date }}-{{ .vars.backup_time }}"
+  backup_name: "{{ .env.DATABASE }}-{{ .vars.backup_date }}-{{ .vars.backup_time }}"
   backup_dir: "{{ .env.BACKUP_ROOT }}/{{ .vars.backup_date }}"
   compression_level: "6"
 
@@ -54,7 +54,7 @@ tasks:
     name: Backup System Databases
     type: command
     command: |
-      mysqldump  -f --verbose --routines --triggers {{ .env.DATABASE }} > "{{ .vars.backup_dir }}/{{ .env.DATABASE }}-{{ .vars.backup_name }}.sql"
+      mysqldump -f --verbose --routines --triggers -u root --password='root' --host localhost --port 3306 "{{ .env.DATABASE }}" > "{{ .vars.backup_dir }}/{{ .env.DATABASE }}-{{ .vars.backup_name }}.sql"
     depends_on: [create_manifest]
 
   - id: compress_database

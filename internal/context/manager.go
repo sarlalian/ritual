@@ -83,6 +83,12 @@ func (m *Manager) GetContext() *types.WorkflowContext {
 	return m.context
 }
 
+// SetWorkflowDir updates the workflow directory for variable file loading
+func (m *Manager) SetWorkflowDir(dir string) {
+	m.workflowDir = dir
+	m.variableLoader = variables.New(dir)
+}
+
 // GetVariable returns a variable value with template evaluation
 func (m *Manager) GetVariable(name string) (interface{}, error) {
 	value, exists := m.context.Variables[name]

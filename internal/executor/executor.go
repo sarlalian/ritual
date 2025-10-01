@@ -153,6 +153,7 @@ func (e *Executor) ExecuteTask(ctx context.Context, task *types.TaskConfig) (*ty
 		result.Stdout = execResult.Stdout
 		result.Stderr = execResult.Stderr
 		result.ReturnCode = execResult.ReturnCode
+		result.Output = execResult.Output  // Copy output field
 		result.EndTime = time.Now()
 		result.Duration = result.EndTime.Sub(result.StartTime)
 

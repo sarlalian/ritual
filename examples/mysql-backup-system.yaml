@@ -29,13 +29,14 @@ tasks:
   - id: create_directory
     name: Create Backup Root Directory
     type: file
-    path: "{{ .vars.BACKUP_ROOT }}"
+    path: "{{ .env.BACKUP_ROOT }}"
     state: directory
 
   - id: create_backup_directory
     name: Create Daily Backup Directory
     type: file
     path: "{{ .vars.backup_dir }}"
+    state: directory
     mode: "0750"
     depends_on: [create_directory]
 
@@ -80,7 +81,8 @@ tasks:
     type: checksum
     action: calculate
     algorithm: sha256
-    path: "{{ .vars.backup_dir }}/{{ .env.DATABASE }}-{{ .vars.backup_name }}.sha256"
+    path: "{{ .vars.backup_dir }}/{{ .env.DATABASE }}-{{ .vars.backup_name }}.sql.tar.gz"
+    output: "{{ .vars.backup_dir }}/{{ .env.DATABASE }}-{{ .vars.backup_name }}.sql.tar.gz.sha256"
     depends_on: [compress_database]
 
   # Generate backup report

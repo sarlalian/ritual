@@ -34,6 +34,9 @@ type ChecksumConfig struct {
 
 	// Action to perform: "calculate" or "verify"
 	Action string `yaml:"action,omitempty" json:"action,omitempty"`
+
+	// Output file to write checksum to (optional)
+	Output string `yaml:"output,omitempty" json:"output,omitempty"`
 }
 
 // New creates a new checksum executor
@@ -80,11 +83,25 @@ func (e *Executor) Execute(ctx context.Context, task *types.TaskConfig, contextM
 	result.Output["algorithm"] = config.Algorithm
 	result.Output["path"] = config.Path
 
+	// Write checksum to output file if specified
+	if config.Output != "" {
+		if err := e.writeChecksumToFile(config.Output, checksum); err != nil {
+			result.Status = types.TaskFailed
+			result.Message = fmt.Sprintf("Failed to write checksum to file: %v", err)
+			return result
+		}
+		result.Output["output_file"] = config.Output
+	}
+
 	// Perform action
 	switch config.Action {
 	case "calculate":
 		result.Status = types.TaskSuccess
-		result.Message = fmt.Sprintf("Calculated %s checksum: %s", config.Algorithm, checksum)
+		if config.Output != "" {
+			result.Message = fmt.Sprintf("Calculated %s checksum: %s (written to %s)", config.Algorithm, checksum, config.Output)
+		} else {
+			result.Message = fmt.Sprintf("Calculated %s checksum: %s", config.Algorithm, checksum)
+		}
 		result.Stdout = checksum
 
 	case "verify":
@@ -185,6 +202,11 @@ func (e *Executor) parseConfig(task *types.TaskConfig, contextManager types.Cont
 		config.Action = action
 	}
 
+	// Extract output (optional)
+	if output, ok := evaluatedConfig["output"].(string); ok {
+		config.Output = output
+	}
+
 	return config, nil
 }
 
@@ -240,4 +262,19 @@ func (e *Executor) calculateChecksum(path, algorithm string) (string, error) {
 	}
 
 	return hex.EncodeToString(sum), nil
+}
+
+// writeChecksumToFile writes the checksum to a file
+func (e *Executor) writeChecksumToFile(path, checksum string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %w", err)
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(checksum + "\n"); err != nil {
+		return fmt.Errorf("failed to write checksum: %w", err)
+	}
+
+	return nil
 }

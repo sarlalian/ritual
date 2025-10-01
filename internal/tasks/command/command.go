@@ -319,6 +319,8 @@ func (e *Executor) executeCommand(ctx context.Context, config *CommandConfig) *t
 		}
 	}
 
+	// Log command details before execution
+	e.logCommandDetails(cmd, config)
 
 	// Execute command
 	err := cmd.Run()
@@ -337,6 +339,7 @@ func (e *Executor) executeCommand(ctx context.Context, config *CommandConfig) *t
 			result.Status = types.TaskFailed
 			result.Message = fmt.Sprintf("Command timed out after %s", config.Timeout)
 			result.ReturnCode = -1
+			e.logCommandFailure(cmd, config, result)
 		} else if exitError, ok := err.(*exec.ExitError); ok {
 			// Command executed but returned non-zero exit code
 			if status, ok := exitError.Sys().(syscall.WaitStatus); ok {
@@ -348,6 +351,7 @@ func (e *Executor) executeCommand(ctx context.Context, config *CommandConfig) *t
 			if config.FailOnError {
 				result.Status = types.TaskFailed
 				result.Message = fmt.Sprintf("Command failed with exit code %d", result.ReturnCode)
+				e.logCommandFailure(cmd, config, result)
 			} else {
 				result.Status = types.TaskSuccess
 				result.Message = fmt.Sprintf("Command completed with exit code %d (ignored)", result.ReturnCode)
@@ -357,6 +361,7 @@ func (e *Executor) executeCommand(ctx context.Context, config *CommandConfig) *t
 			result.Status = types.TaskFailed
 			result.Message = fmt.Sprintf("Failed to execute command: %v", err)
 			result.ReturnCode = -1
+			e.logCommandFailure(cmd, config, result)
 		}
 	} else {
 		// Command executed successfully
@@ -366,4 +371,49 @@ func (e *Executor) executeCommand(ctx context.Context, config *CommandConfig) *t
 	}
 
 	return result
+}
+
+// logCommandDetails logs detailed information about the command being executed
+func (e *Executor) logCommandDetails(cmd *exec.Cmd, config *CommandConfig) {
+	// Always log to stderr for visibility
+	if config.Script != "" {
+		fmt.Fprintf(os.Stderr, "[COMMAND] Executing script via %s:\n", config.Shell)
+		fmt.Fprintf(os.Stderr, "[COMMAND] Script: %s\n", config.Script)
+	} else {
+		fmt.Fprintf(os.Stderr, "[COMMAND] Executing: %s %s\n", cmd.Path, strings.Join(cmd.Args[1:], " "))
+	}
+
+	if config.WorkingDir != "" {
+		fmt.Fprintf(os.Stderr, "[COMMAND] Working Directory: %s\n", config.WorkingDir)
+	}
+
+	if len(config.Environment) > 0 {
+		fmt.Fprintf(os.Stderr, "[COMMAND] Custom Environment Variables:\n")
+		for key, value := range config.Environment {
+			fmt.Fprintf(os.Stderr, "[COMMAND]   %s=%s\n", key, value)
+		}
+	}
+
+	if config.Timeout != "" {
+		fmt.Fprintf(os.Stderr, "[COMMAND] Timeout: %s\n", config.Timeout)
+	}
+}
+
+// logCommandFailure logs detailed failure information
+func (e *Executor) logCommandFailure(cmd *exec.Cmd, config *CommandConfig, result *types.TaskResult) {
+	fmt.Fprintf(os.Stderr, "[COMMAND FAILED] Exit Code: %d\n", result.ReturnCode)
+
+	if config.Script != "" {
+		fmt.Fprintf(os.Stderr, "[COMMAND FAILED] Script: %s\n", config.Script)
+	} else {
+		fmt.Fprintf(os.Stderr, "[COMMAND FAILED] Command: %s %s\n", cmd.Path, strings.Join(cmd.Args[1:], " "))
+	}
+
+	if result.Stderr != "" {
+		fmt.Fprintf(os.Stderr, "[COMMAND FAILED] STDERR:\n%s\n", result.Stderr)
+	}
+
+	if result.Stdout != "" && result.Stderr == "" {
+		fmt.Fprintf(os.Stderr, "[COMMAND FAILED] STDOUT:\n%s\n", result.Stdout)
+	}
 }

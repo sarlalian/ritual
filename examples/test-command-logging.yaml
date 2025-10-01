@@ -1,0 +1,22 @@
+name: Test Command Logging
+description: Example workflow to test command logging and history
+
+tasks:
+  - id: success_task
+    name: Successful Command
+    type: command
+    command: echo "This command succeeds"
+
+  - id: fail_task
+    name: Failing Command
+    type: command
+    command: sh -c "echo 'Error message' >&2; exit 1"
+    fail_on_error: false
+
+  - id: script_task
+    name: Script Execution
+    type: command
+    script: |
+      echo "Running script"
+      ls -la /tmp | head -5
+    shell: /bin/bash

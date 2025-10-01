@@ -1,0 +1,9 @@
+name: Test Failure Logging
+description: Example workflow with a failing command to test logging
+
+tasks:
+  - id: fail_task
+    name: Command That Fails
+    type: command
+    command: ls /nonexistent/directory
+    fail_on_error: true

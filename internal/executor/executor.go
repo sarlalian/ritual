@@ -202,6 +202,10 @@ func (e *Executor) executeLayerSequential(ctx context.Context, layer *resolver.E
 func (e *Executor) executeLayerParallel(ctx context.Context, layer *resolver.ExecutionLayer, workflowResult *types.WorkflowResult) error {
 	// Limit concurrency
 	semaphore := make(chan struct{}, e.maxConcurrency)
+	// Pre-fill semaphore with available slots
+	for i := 0; i < e.maxConcurrency; i++ {
+		semaphore <- struct{}{}
+	}
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
@@ -214,8 +218,8 @@ func (e *Executor) executeLayerParallel(ctx context.Context, layer *resolver.Exe
 			defer wg.Done()
 
 			// Acquire semaphore
-			semaphore <- struct{}{}
-			defer func() { <-semaphore }()
+			<-semaphore
+			defer func() { semaphore <- struct{}{} }()
 
 			select {
 			case <-ctx.Done():

@@ -1,0 +1,44 @@
+name: Test Debug Task
+description: Example workflow demonstrating debug task for logging templated strings
+
+environment:
+  APP_NAME: "MyApplication"
+  VERSION: "1.2.3"
+
+vars:
+  timestamp: "{{ now | date \"2006-01-02 15:04:05\" }}"
+  user: "{{ env \"USER\" }}"
+  hostname: "{{ env \"HOSTNAME\" }}"
+
+tasks:
+  - id: debug_info
+    name: Log Info Message
+    type: debug
+    message: "Starting workflow for {{ .env.APP_NAME }} v{{ .env.VERSION }}"
+    level: info
+
+  - id: debug_variables
+    name: Log Variable Values
+    type: debug
+    message: "Workflow started at {{ .vars.timestamp }} by {{ .vars.user }} on {{ .vars.hostname }}"
+    level: debug
+
+  - id: debug_warning
+    name: Log Warning
+    type: debug
+    message: "This is a warning message - proceeding with caution"
+    level: warn
+
+  - id: debug_context
+    name: Log Task Context
+    type: debug
+    message: "Previous task: {{ .tasks.debug_warning.Status }} - {{ .tasks.debug_warning.Message }}"
+    level: info
+    depends_on: [debug_warning]
+
+  - id: debug_error_example
+    name: Log Error Level
+    type: debug
+    message: "This is what an error-level log looks like (not an actual error)"
+    level: error
+    depends_on: [debug_context]

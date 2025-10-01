@@ -151,6 +151,9 @@ func (r *DependencyResolver) GetDependentsFor(taskID string) ([]*TaskNode, error
 
 // computeLayers uses Kahn's algorithm to compute execution layers
 func (r *DependencyResolver) computeLayers() error {
+	// Clear existing layers before recomputing
+	r.layers = make([]*ExecutionLayer, 0)
+
 	// Initialize working data - use unique nodes only (by ID)
 	uniqueNodes := make(map[string]*TaskNode)
 	inDegree := make(map[string]int)
@@ -172,8 +175,9 @@ func (r *DependencyResolver) computeLayers() error {
 
 	layerNum := 0
 	processedCount := 0
+	maxIterations := 1000 // Safety limit
 
-	for len(currentLayer) > 0 {
+	for len(currentLayer) > 0 && layerNum < maxIterations {
 		// Create execution layer
 		layer := &ExecutionLayer{
 			Tasks:       make([]*TaskNode, len(currentLayer)),

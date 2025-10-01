@@ -12,11 +12,19 @@ environment:
 vars:
   backup_date: "{{ now | date \"2006-01-02\" }}"
   backup_time: "{{ now | date \"15-04-05\" }}"
-  backup_name: "{{ .env.DATABASE }}-{{ .vars.backup_date }}-{{ .vars.backup_time }}"
+  backup_name: "{{ .env.DATABASE }}-{{ .vars.backup_date }}"
   backup_dir: "{{ .env.BACKUP_ROOT }}/{{ .vars.backup_date }}"
   compression_level: "6"
 
 tasks:
+  - id: debug_context
+    name: Log Backup Directory
+    type: debug
+    message: |
+      Backup Date: {{ .vars.backup_date }}
+      Backup Dir: {{ .vars.backup_dir }}
+    level: info
+
   # Pre-backup validation
   - id: create_directory
     name: Create Backup Root Directory
@@ -28,7 +36,6 @@ tasks:
     name: Create Daily Backup Directory
     type: file
     path: "{{ .vars.backup_dir }}"
-    state: directory
     mode: "0750"
     depends_on: [create_directory]
 
@@ -53,18 +60,18 @@ tasks:
   - id: backup_database
     name: Backup System Databases
     type: command
-    command: |
-      mysqldump -f --verbose --routines --triggers -u root --password='root' --host localhost --port 3306 "{{ .env.DATABASE }}" > "{{ .vars.backup_dir }}/{{ .env.DATABASE }}-{{ .vars.backup_name }}.sql"
+    script: mysqldump -f --verbose --skip-lock-tables --routines --triggers -u {{ .env.MYSQL_ROOT }} --password='{{ .env.MYSQL_ROOT_PASS }}' --host thermite.local --port 3306 "{{ .env.DATABASE }}" > "{{ .vars.backup_dir }}/{{ .env.DATABASE }}-{{ .vars.backup_name }}.sql"
+    shell: /bin/bash
     depends_on: [create_manifest]
 
   - id: compress_database
     name: Compress the backed up database
     type: compress
-    path: "{{ .vars.backup_dir }}//{{ env.DATABASE }}-{{ .vars.backup_name }}.sql.tar.gz"
+    path: "{{ .vars.backup_dir }}/{{ .env.DATABASE }}-{{ .vars.backup_name }}.sql.tar.gz"
     state: create
     format: tar.gz
     sources:
-      - "{{ .vars.backup_dir }}/{{ env.DATABASE }}-{{ .vars.backup_name }}.sql"
+      - "{{ .vars.backup_dir }}/{{ .env.DATABASE }}-{{ .vars.backup_name }}.sql"
     depends_on: [backup_database]
 
   # Hash the backup
@@ -73,7 +80,7 @@ tasks:
     type: checksum
     action: calculate
     algorithm: sha256
-    path: "{{ .vars.backup_dir }}//{{ env.DATABASE }}-{{ .vars.backup_name }}.sql.tar.gz"
+    path: "{{ .vars.backup_dir }}/{{ .env.DATABASE }}-{{ .vars.backup_name }}.sha256"
     depends_on: [compress_database]
 
   # Generate backup report
@@ -115,7 +122,7 @@ tasks:
   - id: status_notification
     name: Send Status Notification
     type: command
-    command: |
+    script: |
       report_file="{{ .vars.backup_dir }}/REPORT.txt"
 
       # In a real environment, this would send email/notification
@@ -126,5 +133,6 @@ tasks:
       echo ""
       echo "Backup location: {{ .vars.backup_dir }}"
       echo "Total backup size: $(du -sh '{{ .vars.backup_dir }}' | cut -f1)"
+    shell: /bin/bash
     depends_on: [generate_report]
     required: false  # Notification failure shouldn't fail the backup

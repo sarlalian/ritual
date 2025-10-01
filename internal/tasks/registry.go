@@ -7,6 +7,7 @@ import (
 	"github.com/sarlalian/ritual/internal/tasks/checksum"
 	"github.com/sarlalian/ritual/internal/tasks/command"
 	"github.com/sarlalian/ritual/internal/tasks/compress"
+	"github.com/sarlalian/ritual/internal/tasks/debug"
 	"github.com/sarlalian/ritual/internal/tasks/email"
 	"github.com/sarlalian/ritual/internal/tasks/file"
 	"github.com/sarlalian/ritual/internal/tasks/slack"
@@ -64,6 +65,10 @@ func (r *Registry) RegisterBuiltinTasks() {
 	// Slack task for posting messages to Slack
 	r.Register("slack", slack.New())
 	r.Register("notify", slack.New())       // Alias
+
+	// Debug task for logging templated strings
+	r.Register("debug", debug.New())
+	r.Register("log", debug.New())          // Alias
 }
 
 // Register adds a task executor for a specific task type

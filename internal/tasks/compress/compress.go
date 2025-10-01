@@ -1,4 +1,4 @@
-// ABOUTME: Compress task executor for archive operations (tar, gzip, zip)
+// ABOUTME: Compress task executor for archive operations (tar, gzip, bzip2, zip)
 // ABOUTME: Supports creating and extracting archives with various compression formats
 
 package compress
@@ -6,6 +6,7 @@ package compress
 import (
 	"archive/tar"
 	"archive/zip"
+	"compress/bzip2"
 	"compress/gzip"
 	"context"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	bzip2w "github.com/dsnet/compress/bzip2"
 	"github.com/sarlalian/ritual/pkg/types"
 )
 
@@ -45,12 +47,16 @@ const (
 
 // Archive formats
 const (
-	FormatTarGz = "tar.gz"
-	FormatTgz   = "tgz"
-	FormatTar   = "tar"
-	FormatZip   = "zip"
-	FormatGzip  = "gzip"
-	FormatGz    = "gz"
+	FormatTarGz  = "tar.gz"
+	FormatTgz    = "tgz"
+	FormatTarBz2 = "tar.bz2"
+	FormatTbz2   = "tbz2"
+	FormatTar    = "tar"
+	FormatZip    = "zip"
+	FormatGzip   = "gzip"
+	FormatGz     = "gz"
+	FormatBzip2  = "bzip2"
+	FormatBz2    = "bz2"
 )
 
 // New creates a new compress executor
@@ -121,7 +127,7 @@ func (e *Executor) Validate(task *types.TaskConfig) error {
 
 	// Validate format
 	if config.Format != "" {
-		validFormats := []string{FormatTarGz, FormatTgz, FormatTar, FormatZip, FormatGzip, FormatGz}
+		validFormats := []string{FormatTarGz, FormatTgz, FormatTarBz2, FormatTbz2, FormatTar, FormatZip, FormatGzip, FormatGz, FormatBzip2, FormatBz2}
 		valid := false
 		for _, format := range validFormats {
 			if config.Format == format {
@@ -272,12 +278,16 @@ func (e *Executor) detectFormat(path string) string {
 	lowerPath := strings.ToLower(path)
 	if strings.HasSuffix(lowerPath, ".tar.gz") || strings.HasSuffix(lowerPath, ".tgz") {
 		return FormatTarGz
+	} else if strings.HasSuffix(lowerPath, ".tar.bz2") || strings.HasSuffix(lowerPath, ".tbz2") {
+		return FormatTarBz2
 	} else if strings.HasSuffix(lowerPath, ".tar") {
 		return FormatTar
 	} else if strings.HasSuffix(lowerPath, ".zip") {
 		return FormatZip
 	} else if strings.HasSuffix(lowerPath, ".gz") {
 		return FormatGzip
+	} else if strings.HasSuffix(lowerPath, ".bz2") {
+		return FormatBzip2
 	}
 	return FormatTarGz // Default
 }
@@ -367,6 +377,8 @@ func (e *Executor) handleExtract(path string, config *CompressConfig, result *ty
 	switch config.Format {
 	case FormatTarGz, FormatTgz:
 		extractedFiles, err = e.extractTarGz(path, destDir, config)
+	case FormatTarBz2, FormatTbz2:
+		extractedFiles, err = e.extractTarBz2(path, destDir, config)
 	case FormatTar:
 		extractedFiles, err = e.extractTar(path, destDir, config)
 	case FormatZip:
@@ -415,6 +427,8 @@ func (e *Executor) handleCreate(path string, config *CompressConfig, result *typ
 	switch config.Format {
 	case FormatTarGz, FormatTgz:
 		archivedFiles, err = e.createTarGz(path, config)
+	case FormatTarBz2, FormatTbz2:
+		archivedFiles, err = e.createTarBz2(path, config)
 	case FormatTar:
 		archivedFiles, err = e.createTar(path, config)
 	case FormatZip:
@@ -452,6 +466,19 @@ func (e *Executor) extractTarGz(archivePath, destDir string, config *CompressCon
 	defer gzr.Close()
 
 	return e.extractTarReader(tar.NewReader(gzr), destDir, config)
+}
+
+// extractTarBz2 extracts a tar.bz2 archive
+func (e *Executor) extractTarBz2(archivePath, destDir string, config *CompressConfig) ([]string, error) {
+	file, err := os.Open(archivePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	bzr := bzip2.NewReader(file)
+
+	return e.extractTarReader(tar.NewReader(bzr), destDir, config)
 }
 
 // extractTar extracts a tar archive
@@ -604,6 +631,24 @@ func (e *Executor) createTarGz(archivePath string, config *CompressConfig) ([]st
 	defer gzw.Close()
 
 	return e.createTarWriter(tar.NewWriter(gzw), config)
+}
+
+// createTarBz2 creates a tar.bz2 archive
+func (e *Executor) createTarBz2(archivePath string, config *CompressConfig) ([]string, error) {
+	file, err := os.Create(archivePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	bzwConfig := &bzip2w.WriterConfig{Level: bzip2w.DefaultCompression}
+	bzw, err := bzip2w.NewWriter(file, bzwConfig)
+	if err != nil {
+		return nil, err
+	}
+	defer bzw.Close()
+
+	return e.createTarWriter(tar.NewWriter(bzw), config)
 }
 
 // createTar creates a tar archive

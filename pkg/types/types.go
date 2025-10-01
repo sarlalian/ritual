@@ -272,6 +272,9 @@ type ContextManager interface {
 	// EvaluateMap evaluates all template strings in a map
 	EvaluateMap(data map[string]interface{}) (map[string]interface{}, error)
 
+	// GetTemplateEngine returns the template engine used by this context manager
+	GetTemplateEngine() TemplateEngine
+
 	// Clone creates a copy of the context manager for isolated execution
 	Clone() ContextManager
 }

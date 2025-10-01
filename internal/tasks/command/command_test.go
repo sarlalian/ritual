@@ -66,8 +66,23 @@ func (m *MockContextManager) GetTaskResult(identifier string) (*types.TaskResult
 	return nil, nil
 }
 
+func (m *MockContextManager) GetTemplateEngine() types.TemplateEngine {
+	return &MockTemplateEngine{}
+}
+
 func (m *MockContextManager) Clone() types.ContextManager {
 	return NewMockContextManager()
+}
+
+// MockTemplateEngine for testing
+type MockTemplateEngine struct{}
+
+func (m *MockTemplateEngine) Evaluate(template string, ctx *types.WorkflowContext) (string, error) {
+	return template, nil
+}
+
+func (m *MockTemplateEngine) EvaluateAll(data map[string]interface{}, ctx *types.WorkflowContext) (map[string]interface{}, error) {
+	return data, nil
 }
 
 func TestExecutor_New(t *testing.T) {

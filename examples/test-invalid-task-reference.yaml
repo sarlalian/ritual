@@ -1,0 +1,16 @@
+name: Test Invalid Task Reference
+description: Workflow with invalid task reference to test validation
+
+tasks:
+  - id: task1
+    name: First Task
+    type: debug
+    message: "This is task 1"
+    level: info
+
+  - id: task2
+    name: Second Task That References Invalid Task
+    type: debug
+    message: "Task 1 status: {{ .tasks.task1.Status }}, Non-existent task: {{ .tasks.non_existent_task.Status }}"
+    level: info
+    depends_on: [task1]

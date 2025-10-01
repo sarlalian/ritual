@@ -55,8 +55,23 @@ func (m *MockContextManager) EvaluateMap(data map[string]interface{}) (map[strin
 	return data, nil
 }
 
+func (m *MockContextManager) GetTemplateEngine() types.TemplateEngine {
+	return &MockTemplateEngine{}
+}
+
 func (m *MockContextManager) Clone() types.ContextManager {
 	return &MockContextManager{}
+}
+
+// MockTemplateEngine for testing
+type MockTemplateEngine struct{}
+
+func (m *MockTemplateEngine) Evaluate(template string, ctx *types.WorkflowContext) (string, error) {
+	return template, nil
+}
+
+func (m *MockTemplateEngine) EvaluateAll(data map[string]interface{}, ctx *types.WorkflowContext) (map[string]interface{}, error) {
+	return data, nil
 }
 
 func TestChecksum_Calculate_SHA256(t *testing.T) {

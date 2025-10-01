@@ -182,6 +182,11 @@ func (o *Orchestrator) executeResolvedWorkflow(ctx context.Context, workflow *ty
 	taskErrors := o.taskRegistry.ValidateAll(workflow.Tasks)
 	result.ValidationErrors = append(result.ValidationErrors, taskErrors...)
 
+	// Validate templates in task configurations
+	templateEngine := o.contextManager.GetTemplateEngine()
+	templateErrors := template.ValidateTaskTemplates(workflow.Tasks, templateEngine)
+	result.ValidationErrors = append(result.ValidationErrors, templateErrors...)
+
 	// Stop if we have validation errors
 	if len(result.ValidationErrors) > 0 {
 		o.logf("Workflow validation failed with %d errors", len(result.ValidationErrors))
@@ -292,6 +297,11 @@ func (o *Orchestrator) ValidateWorkflow(workflow *types.Workflow) (*types.Result
 	// Validate all tasks
 	taskErrors := o.taskRegistry.ValidateAll(workflow.Tasks)
 	result.ValidationErrors = append(result.ValidationErrors, taskErrors...)
+
+	// Validate templates in task configurations
+	templateEngine := o.contextManager.GetTemplateEngine()
+	templateErrors := template.ValidateTaskTemplates(workflow.Tasks, templateEngine)
+	result.ValidationErrors = append(result.ValidationErrors, templateErrors...)
 
 	// Validate dependencies
 	if err := o.resolver.BuildGraph(workflow.Tasks); err != nil {

@@ -149,6 +149,10 @@ func (m *MockContextManager) EvaluateMap(data map[string]interface{}) (map[strin
 	return data, nil
 }
 
+func (m *MockContextManager) GetTemplateEngine() types.TemplateEngine {
+	return &MockTemplateEngine{}
+}
+
 func (m *MockContextManager) Clone() types.ContextManager {
 	clone := NewMockContextManager()
 	for k, v := range m.variables {
@@ -161,6 +165,17 @@ func (m *MockContextManager) Clone() types.ContextManager {
 		clone.taskResults[k] = v
 	}
 	return clone
+}
+
+// MockTemplateEngine implements TemplateEngine for testing
+type MockTemplateEngine struct{}
+
+func (m *MockTemplateEngine) Evaluate(template string, ctx *types.WorkflowContext) (string, error) {
+	return template, nil
+}
+
+func (m *MockTemplateEngine) EvaluateAll(data map[string]interface{}, ctx *types.WorkflowContext) (map[string]interface{}, error) {
+	return data, nil
 }
 
 // MockDependencyResolver implements DependencyResolver for testing

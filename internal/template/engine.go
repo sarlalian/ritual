@@ -115,8 +115,8 @@ func (e *Engine) Evaluate(templateStr string, ctx *types.WorkflowContext) (strin
 	// Create a new function map with context-aware functions
 	contextFuncMap := e.createContextFuncMap(ctx)
 
-	// Create and parse the template
-	tmpl, err := template.New("template").Funcs(contextFuncMap).Parse(templateStr)
+	// Create and parse the template with strict error checking for missing keys
+	tmpl, err := template.New("template").Option("missingkey=error").Funcs(contextFuncMap).Parse(templateStr)
 	if err != nil {
 		return "", types.NewTemplateError(templateStr, "", "failed to parse template", err)
 	}

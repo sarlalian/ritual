@@ -51,7 +51,7 @@ tasks:
       Date: {{ now | date "2006-01-02 15:04:05 MST" }}
       System: {{ env "HOSTNAME" }}
       Backup Name: {{ .vars.backup_name }}
-      Source Directories: {{ .env.SOURCE_DIRS }}
+      Database: {{ .env.DATABASE }}
 
       Backup Process:
     mode: "0644"
@@ -102,23 +102,24 @@ tasks:
       - Location: {{ .vars.backup_dir }}
 
       Task Results:
-      - Database backup: {{ .tasks.backup_databases.Status }}
-      - Verification: {{ .tasks.verify_backups.Status }}
+      - Database backup: {{ .tasks.backup_database.Status }}
+      - Compress backup: {{ .tasks.compress_database.Status }}
+      - Checksum: {{ .tasks.checksum_backup.Status }}
 
-      Overall Status: {{ if eq .tasks.verify_backups.Status "success" }}SUCCESS{{ else }}FAILED{{ end }}
+      Overall Status: {{ if eq .tasks.checksum_backup.Status "success" }}SUCCESS{{ else }}FAILED{{ end }}
 
       Next Steps:
-      {{ if eq .tasks.verify_backups.Status "success" -}}
+      {{ if eq .tasks.checksum_backup.Status "success" -}}
       - Backup completed successfully
-      - All archives verified
+      - Checksum verified and written to file
       - Ready for offsite storage if needed
       {{- else -}}
-      - Backup verification failed
+      - Backup checksum failed
       - Check individual task logs
       - Manual intervention may be required
       {{- end }}
     mode: "0644"
-    depends_on: [compress_database]
+    depends_on: [compress_database, checksum_backup]
 
   # Final status notification
   - id: status_notification

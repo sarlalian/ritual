@@ -7,9 +7,11 @@ import (
 	"github.com/sarlalian/ritual/internal/tasks/checksum"
 	"github.com/sarlalian/ritual/internal/tasks/command"
 	"github.com/sarlalian/ritual/internal/tasks/compress"
+	"github.com/sarlalian/ritual/internal/tasks/copy"
 	"github.com/sarlalian/ritual/internal/tasks/debug"
 	"github.com/sarlalian/ritual/internal/tasks/email"
 	"github.com/sarlalian/ritual/internal/tasks/file"
+	"github.com/sarlalian/ritual/internal/tasks/ses"
 	"github.com/sarlalian/ritual/internal/tasks/slack"
 	"github.com/sarlalian/ritual/internal/tasks/ssh"
 	"github.com/sarlalian/ritual/pkg/types"
@@ -41,8 +43,10 @@ func (r *Registry) RegisterBuiltinTasks() {
 
 	// File task for file system operations
 	r.Register("file", file.New())
-	r.Register("copy", file.New())     // Alias
 	r.Register("template", file.New()) // Alias
+
+	// Copy task for cross-filesystem file copying
+	r.Register("copy", copy.New())
 
 	// Compress task for archive operations
 	r.Register("compress", compress.New())
@@ -61,6 +65,10 @@ func (r *Registry) RegisterBuiltinTasks() {
 	// Email task for sending emails via SMTP
 	r.Register("email", email.New())
 	r.Register("mail", email.New()) // Alias
+
+	// SES task for sending emails via Amazon SES
+	r.Register("ses", ses.New())
+	r.Register("aws_email", ses.New()) // Alias
 
 	// Slack task for posting messages to Slack
 	r.Register("slack", slack.New())

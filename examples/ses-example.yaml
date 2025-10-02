@@ -1,0 +1,172 @@
+name: Amazon SES Email Examples
+description: Demonstrates sending emails via Amazon SES with various configurations
+
+variables:
+  aws_region: us-east-1
+  sender_email: sender@example.com
+  recipient_email: recipient@example.com
+  support_email: support@example.com
+
+tasks:
+  # Task 1: Simple email with text body
+  - id: send_simple_email
+    name: Send Simple Text Email
+    type: ses
+    region: "{{ .vars.aws_region }}"
+    from: "{{ .vars.sender_email }}"
+    to:
+      - "{{ .vars.recipient_email }}"
+    subject: "Simple Text Email from Ritual"
+    body: |
+      Hello,
+
+      This is a simple text email sent via Amazon SES using the Ritual workflow engine.
+
+      Best regards,
+      The Ritual Team
+
+  # Task 2: Email with HTML body
+  - id: send_html_email
+    name: Send HTML Email
+    type: ses
+    region: "{{ .vars.aws_region }}"
+    from: "{{ .vars.sender_email }}"
+    to:
+      - "{{ .vars.recipient_email }}"
+    subject: "HTML Email from Ritual"
+    body_html: |
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; }
+          .header { background-color: #4CAF50; color: white; padding: 10px; }
+          .content { padding: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Welcome to Ritual</h1>
+        </div>
+        <div class="content">
+          <p>This is an HTML email sent via Amazon SES.</p>
+          <p>You can use rich formatting, colors, and styles!</p>
+        </div>
+      </body>
+      </html>
+    body: "This is a fallback text version for email clients that don't support HTML."
+    depends_on: [send_simple_email]
+
+  # Task 3: Email with multiple recipients
+  - id: send_multi_recipient_email
+    name: Send Email to Multiple Recipients
+    type: ses
+    region: "{{ .vars.aws_region }}"
+    from: "{{ .vars.sender_email }}"
+    to:
+      - "{{ .vars.recipient_email }}"
+      - "recipient2@example.com"
+    cc:
+      - "cc@example.com"
+    bcc:
+      - "bcc@example.com"
+    subject: "Multi-Recipient Email"
+    body: "This email is sent to multiple recipients using To, CC, and BCC fields."
+    depends_on: [send_html_email]
+
+  # Task 4: Email with configuration set and tags
+  - id: send_tracked_email
+    name: Send Tracked Email with Configuration Set
+    type: ses
+    region: "{{ .vars.aws_region }}"
+    from: "{{ .vars.sender_email }}"
+    to:
+      - "{{ .vars.recipient_email }}"
+    subject: "Tracked Email with Configuration Set"
+    body: "This email uses a configuration set for tracking delivery and engagement metrics."
+    configuration_set: "MyConfigurationSet"
+    tags:
+      Environment: Production
+      Campaign: Q1-2024
+      Type: Notification
+    depends_on: [send_multi_recipient_email]
+
+  # Task 5: Email with Reply-To address
+  - id: send_reply_to_email
+    name: Send Email with Reply-To Address
+    type: ses
+    region: "{{ .vars.aws_region }}"
+    from: "{{ .vars.sender_email }}"
+    to:
+      - "{{ .vars.recipient_email }}"
+    reply_to:
+      - "{{ .vars.support_email }}"
+    subject: "Email with Custom Reply-To"
+    body: "When you reply to this email, it will go to the support team instead of the sender."
+    depends_on: [send_tracked_email]
+
+  # Task 6: Email using SES template
+  - id: send_templated_email
+    name: Send Email Using SES Template
+    type: ses
+    region: "{{ .vars.aws_region }}"
+    from: "{{ .vars.sender_email }}"
+    to:
+      - "{{ .vars.recipient_email }}"
+    subject: "Templated Email"
+    template: "WelcomeTemplate"
+    template_data: |
+      {
+        "username": "JohnDoe",
+        "login_url": "https://example.com/login",
+        "support_email": "support@example.com"
+      }
+    depends_on: [send_reply_to_email]
+
+  # Task 7: Email with credentials specified
+  - id: send_with_credentials
+    name: Send Email with Explicit Credentials
+    type: ses
+    region: "{{ .vars.aws_region }}"
+    access_key_id: "{{ .env.AWS_ACCESS_KEY_ID }}"
+    secret_access_key: "{{ .env.AWS_SECRET_ACCESS_KEY }}"
+    from: "{{ .vars.sender_email }}"
+    to:
+      - "{{ .vars.recipient_email }}"
+    subject: "Email with Explicit Credentials"
+    body: "This email uses explicit AWS credentials instead of IAM role or environment variables."
+    depends_on: [send_templated_email]
+
+  # Task 8: Email with custom charset
+  - id: send_custom_charset_email
+    name: Send Email with Custom Character Set
+    type: ses
+    region: "{{ .vars.aws_region }}"
+    from: "{{ .vars.sender_email }}"
+    to:
+      - "{{ .vars.recipient_email }}"
+    subject: "Email with UTF-8 Charset: 你好世界"
+    body: "This email demonstrates UTF-8 character support: 你好世界 🌍"
+    charset: "UTF-8"
+    depends_on: [send_with_credentials]
+
+  # Task 9: Report results
+  - id: report
+    name: Email Report
+    type: debug
+    message: |
+      Amazon SES Email Tasks Complete:
+      - Simple text email: {{ .tasks.send_simple_email.Status }}
+      - HTML email: {{ .tasks.send_html_email.Status }}
+      - Multi-recipient: {{ .tasks.send_multi_recipient_email.Status }}
+      - Tracked email: {{ .tasks.send_tracked_email.Status }}
+      - Reply-to email: {{ .tasks.send_reply_to_email.Status }}
+      - Templated email: {{ .tasks.send_templated_email.Status }}
+      - With credentials: {{ .tasks.send_with_credentials.Status }}
+      - Custom charset: {{ .tasks.send_custom_charset_email.Status }}
+
+      Message IDs:
+      - Simple: {{ .tasks.send_simple_email.Output.message_id }}
+      - HTML: {{ .tasks.send_html_email.Output.message_id }}
+    level: info
+    depends_on: [send_custom_charset_email]

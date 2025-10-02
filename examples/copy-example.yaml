@@ -1,0 +1,82 @@
+name: File Copy Examples
+description: Demonstrates various file and directory copy operations using the copy task
+
+variables:
+  backup_dir: /tmp/ritual-backups
+  source_dir: /tmp/ritual-source
+  dest_dir: /tmp/ritual-dest
+
+tasks:
+  # Task 1: Simple file copy
+  - id: copy_single_file
+    name: Copy Single File
+    type: copy
+    src: "{{ .vars.source_dir }}/config.txt"
+    dest: "{{ .vars.dest_dir }}/config.txt"
+    create_dirs: true
+
+  # Task 2: Copy with backup
+  - id: copy_with_backup
+    name: Copy File with Backup
+    type: copy
+    src: "{{ .vars.source_dir }}/important.txt"
+    dest: "{{ .vars.dest_dir }}/important.txt"
+    force: true
+    backup: true
+    backup_ext: ".backup"
+    depends_on: [copy_single_file]
+
+  # Task 3: Copy directory recursively
+  - id: copy_directory
+    name: Copy Directory Recursively
+    type: copy
+    src: "{{ .vars.source_dir }}/documents"
+    dest: "{{ .vars.dest_dir }}/documents"
+    recursive: true
+    create_dirs: true
+    depends_on: [copy_with_backup]
+
+  # Task 4: Copy with specific permissions
+  - id: copy_with_permissions
+    name: Copy File with Permissions
+    type: copy
+    src: "{{ .vars.source_dir }}/script.sh"
+    dest: "{{ .vars.dest_dir }}/script.sh"
+    mode: "0755"
+    force: true
+    depends_on: [copy_directory]
+
+  # Task 5: Copy without overwriting existing files
+  - id: safe_copy
+    name: Copy Without Overwriting
+    type: copy
+    src: "{{ .vars.source_dir }}/data.txt"
+    dest: "{{ .vars.dest_dir }}/data.txt"
+    force: false
+    depends_on: [copy_with_permissions]
+
+  # Task 6: Verify copies with checksum
+  - id: verify_copy
+    name: Verify Copied File
+    type: checksum
+    path: "{{ .vars.dest_dir }}/config.txt"
+    algorithm: sha256
+    depends_on: [safe_copy]
+
+  # Task 7: Report results
+  - id: report
+    name: Copy Report
+    type: debug
+    message: |
+      Copy Operations Complete:
+      - Single file: {{ .tasks.copy_single_file.Status }}
+      - With backup: {{ .tasks.copy_with_backup.Status }}
+      - Directory: {{ .tasks.copy_directory.Status }}
+      - With permissions: {{ .tasks.copy_with_permissions.Status }}
+      - Safe copy: {{ .tasks.safe_copy.Status }}
+      - Verification: {{ .tasks.verify_copy.Status }}
+
+      Files copied: {{ .tasks.copy_directory.Output.files_copied }}
+      Bytes copied: {{ .tasks.copy_directory.Output.bytes_copied }}
+    level: info
+    depends_on: [verify_copy]

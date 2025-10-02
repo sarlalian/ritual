@@ -1,0 +1,155 @@
+name: Cross-Filesystem Copy Examples
+description: Demonstrates copying files between local, S3, and SSH/SFTP filesystems
+
+variables:
+  local_dir: /tmp/ritual-local
+  s3_bucket: my-bucket
+  s3_region: us-east-1
+  ssh_host: example.com
+  ssh_user: myuser
+  remote_path: /home/myuser/data
+
+tasks:
+  # Task 1: Copy local file to S3
+  - id: local_to_s3
+    name: Copy Local File to S3
+    type: copy
+    src: "{{ .vars.local_dir }}/document.pdf"
+    dest: "s3://{{ .vars.s3_bucket }}/documents/document.pdf"
+    aws_region: "{{ .vars.s3_region }}"
+    # AWS credentials can be provided explicitly or use IAM role/env vars
+    # aws_access_key_id: "{{ .env.AWS_ACCESS_KEY_ID }}"
+    # aws_secret_access_key: "{{ .env.AWS_SECRET_ACCESS_KEY }}"
+
+  # Task 2: Copy from S3 to local
+  - id: s3_to_local
+    name: Copy S3 File to Local
+    type: copy
+    src: "s3://{{ .vars.s3_bucket }}/backup/data.tar.gz"
+    dest: "{{ .vars.local_dir }}/downloads/data.tar.gz"
+    aws_region: "{{ .vars.s3_region }}"
+    create_dirs: true
+    depends_on: [local_to_s3]
+
+  # Task 3: Copy directory to S3 recursively
+  - id: local_dir_to_s3
+    name: Copy Local Directory to S3
+    type: copy
+    src: "{{ .vars.local_dir }}/reports"
+    dest: "s3://{{ .vars.s3_bucket }}/reports"
+    aws_region: "{{ .vars.s3_region }}"
+    recursive: true
+    depends_on: [s3_to_local]
+
+  # Task 4: Copy local file to remote server via SFTP
+  - id: local_to_sftp
+    name: Copy Local File to SFTP Server
+    type: copy
+    src: "{{ .vars.local_dir }}/config.json"
+    dest: "sftp://{{ .vars.ssh_host }}/{{ .vars.remote_path }}/config.json"
+    ssh_user: "{{ .vars.ssh_user }}"
+    # SSH authentication options:
+    # Option 1: Password authentication
+    # ssh_password: "{{ .env.SSH_PASSWORD }}"
+    # Option 2: Private key file
+    ssh_private_key_path: "~/.ssh/id_rsa"
+    # Option 3: Private key content
+    # ssh_private_key: "{{ .env.SSH_PRIVATE_KEY }}"
+    depends_on: [local_dir_to_s3]
+
+  # Task 5: Copy from SFTP to local
+  - id: sftp_to_local
+    name: Copy SFTP File to Local
+    type: copy
+    src: "sftp://{{ .vars.ssh_host }}/{{ .vars.remote_path }}/backup.tar.gz"
+    dest: "{{ .vars.local_dir }}/backups/backup.tar.gz"
+    ssh_user: "{{ .vars.ssh_user }}"
+    ssh_private_key_path: "~/.ssh/id_rsa"
+    create_dirs: true
+    depends_on: [local_to_sftp]
+
+  # Task 6: Copy directory from SFTP recursively
+  - id: sftp_dir_to_local
+    name: Copy SFTP Directory to Local
+    type: copy
+    src: "sftp://{{ .vars.ssh_host }}/{{ .vars.remote_path }}/logs"
+    dest: "{{ .vars.local_dir }}/remote-logs"
+    ssh_user: "{{ .vars.ssh_user }}"
+    ssh_private_key_path: "~/.ssh/id_rsa"
+    recursive: true
+    create_dirs: true
+    depends_on: [sftp_to_local]
+
+  # Task 7: Copy between S3 and SFTP (via local staging)
+  # Note: Direct S3-to-SFTP copy would require streaming, which isn't implemented yet
+  # For now, we stage through local filesystem
+  - id: s3_to_sftp_via_local
+    name: Copy S3 File to SFTP (via local staging)
+    type: copy
+    src: "s3://{{ .vars.s3_bucket }}/archive/report.pdf"
+    dest: "{{ .vars.local_dir }}/staging/report.pdf"
+    aws_region: "{{ .vars.s3_region }}"
+    create_dirs: true
+    depends_on: [sftp_dir_to_local]
+
+  - id: local_staging_to_sftp
+    name: Copy Staged File to SFTP
+    type: copy
+    src: "{{ .vars.local_dir }}/staging/report.pdf"
+    dest: "sftp://{{ .vars.ssh_host }}/{{ .vars.remote_path }}/report.pdf"
+    ssh_user: "{{ .vars.ssh_user }}"
+    ssh_private_key_path: "~/.ssh/id_rsa"
+    depends_on: [s3_to_sftp_via_local]
+
+  # Task 8: Advanced - Copy with explicit AWS credentials
+  - id: copy_with_explicit_creds
+    name: Copy to S3 with Explicit Credentials
+    type: copy
+    src: "{{ .vars.local_dir }}/sensitive/data.enc"
+    dest: "s3://{{ .vars.s3_bucket }}/secure/data.enc"
+    aws_region: "{{ .vars.s3_region }}"
+    aws_access_key_id: "{{ .env.AWS_ACCESS_KEY_ID }}"
+    aws_secret_access_key: "{{ .env.AWS_SECRET_ACCESS_KEY }}"
+    # Optional: Use session token for temporary credentials
+    # aws_session_token: "{{ .env.AWS_SESSION_TOKEN }}"
+    depends_on: [local_staging_to_sftp]
+
+  # Task 9: Copy with SSH password authentication
+  - id: copy_with_ssh_password
+    name: Copy to SFTP with Password Auth
+    type: copy
+    src: "{{ .vars.local_dir }}/public/readme.txt"
+    dest: "sftp://{{ .vars.ssh_host }}/{{ .vars.remote_path }}/readme.txt"
+    ssh_user: "{{ .vars.ssh_user }}"
+    ssh_password: "{{ .env.SSH_PASSWORD }}"
+    depends_on: [copy_with_explicit_creds]
+
+  # Task 10: Report results
+  - id: report
+    name: Copy Report
+    type: debug
+    message: |
+      Cross-Filesystem Copy Operations Complete:
+
+      Local → S3:
+        - Single file: {{ .tasks.local_to_s3.Status }}
+        - Directory: {{ .tasks.local_dir_to_s3.Status }}
+        - With credentials: {{ .tasks.copy_with_explicit_creds.Status }}
+
+      S3 → Local:
+        - Single file: {{ .tasks.s3_to_local.Status }}
+
+      Local → SFTP:
+        - Single file: {{ .tasks.local_to_sftp.Status }}
+        - With password: {{ .tasks.copy_with_ssh_password.Status }}
+
+      SFTP → Local:
+        - Single file: {{ .tasks.sftp_to_local.Status }}
+        - Directory: {{ .tasks.sftp_dir_to_local.Status }}
+
+      S3 → SFTP (staged):
+        - Via local: {{ .tasks.local_staging_to_sftp.Status }}
+
+      Total files copied: {{ add .tasks.local_to_s3.Output.files_copied .tasks.s3_to_local.Output.files_copied .tasks.local_to_sftp.Output.files_copied }}
+    level: info
+    depends_on: [copy_with_ssh_password]

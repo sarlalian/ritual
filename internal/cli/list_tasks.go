@@ -48,7 +48,7 @@ func listTasks(cmd *cobra.Command, args []string) error {
 		"shell":     "Alias for command task",
 		"script":    "Alias for command task",
 		"file":      "File operations (create, copy, delete, chmod, etc.)",
-		"copy":      "Alias for file task",
+		"copy":      "Copy files and directories across filesystems",
 		"template":  "Alias for file task",
 		"compress":  "Create and extract archives (tar, gzip, zip, bzip2)",
 		"archive":   "Alias for compress task",
@@ -60,8 +60,12 @@ func listTasks(cmd *cobra.Command, args []string) error {
 		"remote":    "Alias for ssh task",
 		"email":     "Send emails via SMTP with TLS support",
 		"mail":      "Alias for email task",
+		"ses":       "Send emails via Amazon SES",
+		"aws_email": "Alias for ses task",
 		"slack":     "Post messages to Slack channels via webhooks",
 		"notify":    "Alias for slack task",
+		"debug":     "Log messages for debugging workflows",
+		"log":       "Alias for debug task",
 	}
 
 	// Group tasks by category
@@ -71,14 +75,15 @@ func listTasks(cmd *cobra.Command, args []string) error {
 		"Compression":   {"compress", "archive", "unarchive"},
 		"Security":      {"checksum", "hash", "verify"},
 		"Remote":        {"ssh", "remote"},
-		"Communication": {"email", "mail", "slack", "notify"},
+		"Communication": {"email", "mail", "ses", "aws_email", "slack", "notify"},
+		"Debug":         {"debug", "log"},
 	}
 
 	fmt.Println("✨ Available Task Types")
 	fmt.Println()
 
 	// Display by category
-	categoryOrder := []string{"Core", "File Ops", "Compression", "Security", "Remote", "Communication"}
+	categoryOrder := []string{"Core", "File Ops", "Compression", "Security", "Remote", "Communication", "Debug"}
 	for _, category := range categoryOrder {
 		taskList := categories[category]
 		hasTask := false

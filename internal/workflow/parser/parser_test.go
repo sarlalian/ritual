@@ -262,7 +262,7 @@ tasks:
 `
 
 	fs := afero.NewMemMapFs()
-	afero.WriteFile(fs, "test.yaml", []byte(yamlContent), 0644)
+	_ = afero.WriteFile(fs, "test.yaml", []byte(yamlContent), 0644)
 
 	parser := New(fs)
 	workflow, err := parser.ParseFile("test.yaml")

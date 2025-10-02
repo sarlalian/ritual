@@ -142,7 +142,7 @@ func (ws *WebhookServer) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handleGitHubWebhook handles GitHub-specific webhook events
@@ -177,7 +177,7 @@ func (ws *WebhookServer) handleGitHubWebhook(w http.ResponseWriter, r *http.Requ
 
 	// Return GitHub-expected response
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK"))
 }
 
 // handleGitLabWebhook handles GitLab-specific webhook events
@@ -212,7 +212,7 @@ func (ws *WebhookServer) handleGitLabWebhook(w http.ResponseWriter, r *http.Requ
 
 	// Return GitLab-expected response
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK"))
 }
 
 // handleCustomWebhook handles custom webhook events with flexible payload
@@ -258,7 +258,7 @@ func (ws *WebhookServer) handleCustomWebhook(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handleStatus returns server status information
@@ -274,7 +274,7 @@ func (ws *WebhookServer) handleStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(status)
+	_ = json.NewEncoder(w).Encode(status)
 }
 
 // handleExecutions returns list of workflow executions
@@ -287,7 +287,7 @@ func (ws *WebhookServer) handleExecutions(w http.ResponseWriter, r *http.Request
 	ws.mu.RUnlock()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(executions)
+	_ = json.NewEncoder(w).Encode(executions)
 }
 
 // handleExecutionDetails returns details for a specific execution
@@ -311,7 +311,7 @@ func (ws *WebhookServer) handleExecutionDetails(w http.ResponseWriter, r *http.R
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(execution)
+	_ = json.NewEncoder(w).Encode(execution)
 }
 
 // handleHealth returns health status
@@ -322,7 +322,7 @@ func (ws *WebhookServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(health)
+	_ = json.NewEncoder(w).Encode(health)
 }
 
 // executeWorkflow executes a workflow based on webhook payload

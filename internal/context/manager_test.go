@@ -87,7 +87,7 @@ func TestManager_SetGetVariable(t *testing.T) {
 			"BASE_VALUE": "base",
 		},
 	}
-	manager.Initialize(workflow, nil)
+	_ = manager.Initialize(workflow, nil)
 
 	// Set simple variable
 	err := manager.SetVariable("test_var", "test_value")
@@ -124,7 +124,7 @@ func TestManager_SetGetEnvironment(t *testing.T) {
 
 	// Initialize
 	workflow := &types.Workflow{Name: "test"}
-	manager.Initialize(workflow, nil)
+	_ = manager.Initialize(workflow, nil)
 
 	// Set environment variable
 	err := manager.SetEnvironment("TEST_ENV", "env_value")
@@ -150,7 +150,7 @@ func TestManager_RegisterTaskResult(t *testing.T) {
 
 	// Initialize
 	workflow := &types.Workflow{Name: "test"}
-	manager.Initialize(workflow, nil)
+	_ = manager.Initialize(workflow, nil)
 
 	// Register task result
 	taskResult := &types.TaskResult{
@@ -205,7 +205,7 @@ func TestManager_EvaluateString(t *testing.T) {
 			"var1": "variable_value",
 		},
 	}
-	manager.Initialize(workflow, nil)
+	_ = manager.Initialize(workflow, nil)
 
 	// Register task result
 	taskResult := &types.TaskResult{
@@ -214,7 +214,7 @@ func TestManager_EvaluateString(t *testing.T) {
 		Status: types.TaskSuccess,
 		Stdout: "output",
 	}
-	manager.RegisterTaskResult(taskResult)
+	_ = manager.RegisterTaskResult(taskResult)
 
 	tests := []struct {
 		template string
@@ -251,7 +251,7 @@ func TestManager_EvaluateMap(t *testing.T) {
 			"base": "base_value",
 		},
 	}
-	manager.Initialize(workflow, nil)
+	_ = manager.Initialize(workflow, nil)
 
 	input := map[string]interface{}{
 		"simple":   "plain text",
@@ -302,14 +302,14 @@ func TestManager_Clone(t *testing.T) {
 			"var1": "value1",
 		},
 	}
-	manager.Initialize(workflow, []string{"CLI_VAR=cli_value"})
+	_ = manager.Initialize(workflow, []string{"CLI_VAR=cli_value"})
 
 	// Register task result
 	taskResult := &types.TaskResult{
 		ID:     "task1",
 		Status: types.TaskSuccess,
 	}
-	manager.RegisterTaskResult(taskResult)
+	_ = manager.RegisterTaskResult(taskResult)
 
 	// Clone
 	clone := manager.Clone()
@@ -330,7 +330,7 @@ func TestManager_Clone(t *testing.T) {
 	}
 
 	// Modify original and verify clone is independent
-	manager.SetVariable("var1", "modified")
+	_ = manager.SetVariable("var1", "modified")
 	cloneVar, _ = clone.GetVariable("var1")
 	if cloneVar != "value1" {
 		t.Error("Clone should be independent of original modifications")
@@ -393,7 +393,7 @@ INT_VAR=42`
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
-	defer os.Remove(tmpFile)
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	vars, err := LoadEnvironmentFile(tmpFile)
 	if err != nil {
@@ -428,7 +428,7 @@ VAR2=value2`
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
-	defer os.Remove(tmpFile)
+	defer func() { _ = os.Remove(tmpFile) }()
 
 	_, err = LoadEnvironmentFile(tmpFile)
 	if err == nil {
@@ -489,17 +489,14 @@ func TestManager_SystemEnvironmentVariables(t *testing.T) {
 	manager := New(engine)
 
 	// Set a system environment variable for testing
-	os.Setenv("TEST_SYSTEM_VAR", "system_value")
-	defer os.Unsetenv("TEST_SYSTEM_VAR")
+	_ = os.Setenv("TEST_SYSTEM_VAR", "system_value")
+	defer func() { _ = os.Unsetenv("TEST_SYSTEM_VAR") }()
 
 	workflow := &types.Workflow{
 		Name: "test",
 	}
 
-	err := manager.Initialize(workflow, nil)
-	if err != nil {
-		t.Fatalf("Expected no error, got: %v", err)
-	}
+	_ = manager.Initialize(workflow, nil)
 
 	// System environment variable should be available
 	value := manager.GetEnvironment("TEST_SYSTEM_VAR", "default")

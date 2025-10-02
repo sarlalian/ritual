@@ -216,7 +216,7 @@ func (e *Executor) calculateChecksum(path, algorithm string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	var hasher io.Writer
 	var sum []byte
@@ -270,7 +270,7 @@ func (e *Executor) writeChecksumToFile(path, checksum string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	if _, err := file.WriteString(checksum + "\n"); err != nil {
 		return fmt.Errorf("failed to write checksum: %w", err)

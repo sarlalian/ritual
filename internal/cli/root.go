@@ -62,9 +62,9 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&format, "format", "text", "output format (text, json)")
 
 	// Bind flags to viper
-	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
-	viper.BindPFlag("quiet", rootCmd.PersistentFlags().Lookup("quiet"))
-	viper.BindPFlag("format", rootCmd.PersistentFlags().Lookup("format"))
+	_ = viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
+	_ = viper.BindPFlag("quiet", rootCmd.PersistentFlags().Lookup("quiet"))
+	_ = viper.BindPFlag("format", rootCmd.PersistentFlags().Lookup("format"))
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -96,7 +96,7 @@ func initConfig() {
 
 // initLogger initializes the global logger based on flags
 func initLogger() {
-	var level utils.LogLevel = utils.InfoLevel
+	level := utils.InfoLevel
 
 	// Determine log level from flags
 	if viper.GetBool("verbose") {

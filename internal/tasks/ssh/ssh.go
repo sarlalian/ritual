@@ -93,7 +93,7 @@ func (e *Executor) Execute(ctx context.Context, task *types.TaskConfig, contextM
 		result.Message = fmt.Sprintf("Failed to connect to SSH host: %v", err)
 		return result
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Create session
 	session, err := client.NewSession()
@@ -102,14 +102,13 @@ func (e *Executor) Execute(ctx context.Context, task *types.TaskConfig, contextM
 		result.Message = fmt.Sprintf("Failed to create SSH session: %v", err)
 		return result
 	}
-	defer session.Close()
+	defer func() { _ = session.Close() }()
 
 	// Set environment variables
 	for key, value := range config.Environment {
-		if err := session.Setenv(key, value); err != nil {
-			// Some SSH servers don't allow setting env vars, so we'll ignore this error
-			// and try to set them in the command prefix instead
-		}
+		// Some SSH servers don't allow setting env vars, so we ignore errors
+		// and set them in the command prefix instead
+		_ = session.Setenv(key, value)
 	}
 
 	// Prepare command with environment variables if server doesn't support Setenv
@@ -135,13 +134,13 @@ func (e *Executor) Execute(ctx context.Context, task *types.TaskConfig, contextM
 
 	select {
 	case <-ctx.Done():
-		session.Signal(ssh.SIGKILL)
+		_ = session.Signal(ssh.SIGKILL)
 		result.Status = types.TaskFailed
 		result.Message = "Task cancelled by context"
 		return result
 
 	case <-time.After(timeout):
-		session.Signal(ssh.SIGKILL)
+		_ = session.Signal(ssh.SIGKILL)
 		result.Status = types.TaskFailed
 		result.Message = fmt.Sprintf("Command timed out after %v", timeout)
 		result.Stdout = stdout.String()

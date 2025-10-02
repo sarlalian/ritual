@@ -16,7 +16,6 @@ import (
 
 // MockTaskExecutor implements TaskExecutor for testing
 type MockTaskExecutor struct {
-	name         string
 	shouldFail   bool
 	shouldSkip   bool
 	executionLog []string
@@ -178,11 +177,7 @@ func (m *MockTemplateEngine) EvaluateAll(data map[string]interface{}, ctx *types
 	return data, nil
 }
 
-// MockDependencyResolver implements DependencyResolver for testing
-type MockDependencyResolver struct {
-	layers []*resolver.ExecutionLayer
-}
-
+// NewMockResolver creates a real resolver for testing
 func NewMockResolver(tasks []types.TaskConfig) *resolver.DependencyResolver {
 	// Use the real resolver to build the graph for tests
 	r := resolver.New()

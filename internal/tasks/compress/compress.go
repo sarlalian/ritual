@@ -457,13 +457,13 @@ func (e *Executor) extractTarGz(archivePath, destDir string, config *CompressCon
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	gzr, err := gzip.NewReader(file)
 	if err != nil {
 		return nil, err
 	}
-	defer gzr.Close()
+	defer func() { _ = gzr.Close() }()
 
 	return e.extractTarReader(tar.NewReader(gzr), destDir, config)
 }
@@ -474,7 +474,7 @@ func (e *Executor) extractTarBz2(archivePath, destDir string, config *CompressCo
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	bzr := bzip2.NewReader(file)
 
@@ -487,7 +487,7 @@ func (e *Executor) extractTar(archivePath, destDir string, config *CompressConfi
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	return e.extractTarReader(tar.NewReader(file), destDir, config)
 }
@@ -536,10 +536,10 @@ func (e *Executor) extractTarReader(tr *tar.Reader, destDir string, config *Comp
 			}
 
 			if _, err := io.Copy(outFile, tr); err != nil {
-				outFile.Close()
+				_ = outFile.Close()
 				return nil, err
 			}
-			outFile.Close()
+			_ = outFile.Close()
 
 			// Set file permissions
 			if err := os.Chmod(target, os.FileMode(header.Mode)); err != nil {
@@ -559,7 +559,7 @@ func (e *Executor) extractZip(archivePath, destDir string, config *CompressConfi
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	var extractedFiles []string
 
@@ -596,13 +596,13 @@ func (e *Executor) extractZip(archivePath, destDir string, config *CompressConfi
 
 		outFile, err := os.Create(target)
 		if err != nil {
-			rc.Close()
+			_ = rc.Close()
 			return nil, err
 		}
 
 		_, err = io.Copy(outFile, rc)
-		outFile.Close()
-		rc.Close()
+		_ = outFile.Close()
+		_ = rc.Close()
 
 		if err != nil {
 			return nil, err
@@ -625,10 +625,10 @@ func (e *Executor) createTarGz(archivePath string, config *CompressConfig) ([]st
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	gzw := gzip.NewWriter(file)
-	defer gzw.Close()
+	defer func() { _ = gzw.Close() }()
 
 	return e.createTarWriter(tar.NewWriter(gzw), config)
 }
@@ -639,14 +639,14 @@ func (e *Executor) createTarBz2(archivePath string, config *CompressConfig) ([]s
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	bzwConfig := &bzip2w.WriterConfig{Level: bzip2w.DefaultCompression}
 	bzw, err := bzip2w.NewWriter(file, bzwConfig)
 	if err != nil {
 		return nil, err
 	}
-	defer bzw.Close()
+	defer func() { _ = bzw.Close() }()
 
 	return e.createTarWriter(tar.NewWriter(bzw), config)
 }
@@ -657,14 +657,14 @@ func (e *Executor) createTar(archivePath string, config *CompressConfig) ([]stri
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	return e.createTarWriter(tar.NewWriter(file), config)
 }
 
 // createTarWriter creates archive files using a tar writer
 func (e *Executor) createTarWriter(tw *tar.Writer, config *CompressConfig) ([]string, error) {
-	defer tw.Close()
+	defer func() { _ = tw.Close() }()
 
 	var archivedFiles []string
 
@@ -712,7 +712,7 @@ func (e *Executor) createTarWriter(tw *tar.Writer, config *CompressConfig) ([]st
 				if err != nil {
 					return err
 				}
-				defer file.Close()
+				defer func() { _ = file.Close() }()
 
 				if _, err := io.Copy(tw, file); err != nil {
 					return err
@@ -738,10 +738,10 @@ func (e *Executor) createZip(archivePath string, config *CompressConfig) ([]stri
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	writer := zip.NewWriter(file)
-	defer writer.Close()
+	defer func() { _ = writer.Close() }()
 
 	var archivedFiles []string
 
@@ -789,7 +789,7 @@ func (e *Executor) createZip(archivePath string, config *CompressConfig) ([]stri
 			if err != nil {
 				return err
 			}
-			defer srcFile.Close()
+			defer func() { _ = srcFile.Close() }()
 
 			if _, err := io.Copy(zipFile, srcFile); err != nil {
 				return err

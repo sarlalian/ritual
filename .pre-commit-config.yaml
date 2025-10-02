@@ -1,0 +1,25 @@
+# ABOUTME: Pre-commit hooks configuration for Ritual Go project
+# ABOUTME: Enforces code formatting, linting, and testing standards before commits
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/tekwizely/pre-commit-golang
+    rev: v1.0.0-rc.1
+    hooks:
+      - id: go-fmt
+        args: ['-w']
+      - id: go-imports
+        args: ['-w']
+      - id: go-vet-mod
+      - id: go-test-mod
+        args: ['-timeout=30s']
+      - id: go-build-mod
+      - id: golangci-lint-mod

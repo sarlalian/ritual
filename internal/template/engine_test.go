@@ -129,8 +129,8 @@ func TestEngine_Evaluate_CustomFunctions(t *testing.T) {
 	ctx := &types.WorkflowContext{}
 
 	// Test env function
-	os.Setenv("TEST_TEMPLATE_VAR", "test_env_value")
-	defer os.Unsetenv("TEST_TEMPLATE_VAR")
+	_ = os.Setenv("TEST_TEMPLATE_VAR", "test_env_value")
+	defer func() { _ = os.Unsetenv("TEST_TEMPLATE_VAR") }()
 
 	result, err := engine.Evaluate("{{ env \"TEST_TEMPLATE_VAR\" }}", ctx)
 	if err != nil {

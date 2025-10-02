@@ -105,11 +105,12 @@ func (e *Executor) ExecuteWorkflow(ctx context.Context, workflow *types.Workflow
 	hasSuccess := false
 
 	for _, taskResult := range result.Tasks {
-		if taskResult.Status == types.TaskFailed {
+		switch taskResult.Status {
+		case types.TaskFailed:
 			hasFailures = true
-		} else if taskResult.Status == types.TaskSkipped {
+		case types.TaskSkipped:
 			hasSkipped = true
-		} else if taskResult.Status == types.TaskSuccess {
+		case types.TaskSuccess:
 			hasSuccess = true
 		}
 	}

@@ -10,10 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	s3fs "github.com/fclairamb/afero-s3"
+	// TODO: Migrate from AWS SDK v1 to v2 (aws-sdk-go is deprecated)
+	"github.com/aws/aws-sdk-go/aws"             //nolint:staticcheck // TODO: Migrate to AWS SDK v2
+	"github.com/aws/aws-sdk-go/aws/credentials" //nolint:staticcheck // TODO: Migrate to AWS SDK v2
+	"github.com/aws/aws-sdk-go/aws/session"     //nolint:staticcheck // TODO: Migrate to AWS SDK v2
+	s3fs "github.com/fclairamb/afero-s3"        //nolint:staticcheck // TODO: Migrate to AWS SDK v2
 	"github.com/pkg/sftp"
 	"github.com/spf13/afero"
 	"golang.org/x/crypto/ssh"
@@ -234,7 +235,7 @@ func createSFTPFilesystem(info *FSInfo, config *Config) (afero.Fs, error) {
 	// Create SFTP client
 	sftpClient, err := sftp.NewClient(conn)
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, fmt.Errorf("failed to create SFTP client: %w", err)
 	}
 

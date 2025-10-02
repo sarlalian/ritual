@@ -9,10 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ses"
+	// TODO: Migrate from AWS SDK v1 to v2 (aws-sdk-go is deprecated)
+	"github.com/aws/aws-sdk-go/aws"             //nolint:staticcheck // TODO: Migrate to AWS SDK v2
+	"github.com/aws/aws-sdk-go/aws/credentials" //nolint:staticcheck // TODO: Migrate to AWS SDK v2
+	"github.com/aws/aws-sdk-go/aws/session"     //nolint:staticcheck // TODO: Migrate to AWS SDK v2
+	"github.com/aws/aws-sdk-go/service/ses"     //nolint:staticcheck // TODO: Migrate to AWS SDK v2
 
 	"github.com/sarlalian/ritual/pkg/types"
 )

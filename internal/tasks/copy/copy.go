@@ -400,14 +400,14 @@ func (e *Executor) copyFileCrossFS(srcFs afero.Fs, srcPath string, dstFs afero.F
 	if err != nil {
 		return fmt.Errorf("failed to open source: %w", err)
 	}
-	defer srcFile.Close()
+	defer func() { _ = srcFile.Close() }()
 
 	// Create destination file
 	dstFile, err := dstFs.Create(dstPath)
 	if err != nil {
 		return fmt.Errorf("failed to create destination: %w", err)
 	}
-	defer dstFile.Close()
+	defer func() { _ = dstFile.Close() }()
 
 	// Copy contents
 	_, err = io.Copy(dstFile, srcFile)
@@ -418,7 +418,7 @@ func (e *Executor) copyFileCrossFS(srcFs afero.Fs, srcPath string, dstFs afero.F
 	// Try to preserve permissions (may fail for some filesystem types)
 	srcInfo, err := srcFs.Stat(srcPath)
 	if err == nil {
-		dstFs.Chmod(dstPath, srcInfo.Mode())
+		_ = dstFs.Chmod(dstPath, srcInfo.Mode())
 	}
 
 	return nil
@@ -470,85 +470,6 @@ func (e *Executor) copyDirCrossFS(srcFs afero.Fs, srcPath string, dstFs afero.Fs
 	return nil
 }
 
-
-// copyFile copies a single file using Afero
-func (e *Executor) copyFile(fs afero.Fs, src, dst string) error {
-	// Open source file
-	srcFile, err := fs.Open(src)
-	if err != nil {
-		return fmt.Errorf("failed to open source: %w", err)
-	}
-	defer srcFile.Close()
-
-	// Create destination file
-	dstFile, err := fs.Create(dst)
-	if err != nil {
-		return fmt.Errorf("failed to create destination: %w", err)
-	}
-	defer dstFile.Close()
-
-	// Copy contents
-	_, err = io.Copy(dstFile, srcFile)
-	if err != nil {
-		return fmt.Errorf("failed to copy data: %w", err)
-	}
-
-	// Get source file info to copy permissions
-	srcInfo, err := fs.Stat(src)
-	if err == nil {
-		// Try to preserve permissions
-		fs.Chmod(dst, srcInfo.Mode())
-	}
-
-	return nil
-}
-
-// copyDir recursively copies a directory
-func (e *Executor) copyDir(fs afero.Fs, src, dst string, config *CopyConfig, result *CopyResult) error {
-	// Create destination directory
-	if err := fs.MkdirAll(dst, 0755); err != nil {
-		return fmt.Errorf("failed to create destination directory: %w", err)
-	}
-
-	// Read source directory
-	entries, err := afero.ReadDir(fs, src)
-	if err != nil {
-		return fmt.Errorf("failed to read source directory: %w", err)
-	}
-
-	// Copy each entry
-	for _, entry := range entries {
-		srcPath := filepath.Join(src, entry.Name())
-		dstPath := filepath.Join(dst, entry.Name())
-
-		if entry.IsDir() {
-			// Recursively copy subdirectory
-			if err := e.copyDir(fs, srcPath, dstPath, config, result); err != nil {
-				return err
-			}
-		} else {
-			// Check if destination exists
-			_, destErr := fs.Stat(dstPath)
-			destExists := destErr == nil
-
-			if destExists && !config.Force {
-				result.Skipped++
-				continue
-			}
-
-			// Copy file
-			if err := e.copyFile(fs, srcPath, dstPath); err != nil {
-				return fmt.Errorf("failed to copy %s: %w", srcPath, err)
-			}
-
-			result.FilesCopied++
-			result.BytesCopied += entry.Size()
-		}
-	}
-
-	return nil
-}
-
 // parseFileMode parses a file mode string (e.g., "0644") into os.FileMode
 func parseFileMode(mode string) (os.FileMode, error) {
 	// Remove any leading "0" for octal notation
@@ -561,6 +482,6 @@ func parseFileMode(mode string) (os.FileMode, error) {
 	}
 
 	var modeValue uint32
-	fmt.Sscanf(mode, "%o", &modeValue)
+	_, _ = fmt.Sscanf(mode, "%o", &modeValue)
 	return os.FileMode(modeValue), nil
 }

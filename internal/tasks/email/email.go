@@ -274,7 +274,7 @@ func (e *Executor) sendEmail(config *EmailConfig) error {
 		if err != nil {
 			return fmt.Errorf("failed to connect to SMTP server: %w", err)
 		}
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		// Start TLS
 		if err := client.StartTLS(tlsConfig); err != nil {

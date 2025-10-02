@@ -26,7 +26,7 @@ func TestOrchestrator_New(t *testing.T) {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
 	if orchestrator == nil {
-		t.Error("Expected orchestrator to be created")
+		t.Fatal("Expected orchestrator to be created")
 	}
 
 	if orchestrator.config.DryRun != true {
@@ -284,7 +284,7 @@ tasks:
 	}
 
 	if result.WorkflowResult == nil {
-		t.Error("Expected workflow result")
+		t.Fatal("Expected workflow result")
 	}
 
 	if result.WorkflowResult.Name != "File Test Workflow" {
@@ -342,7 +342,7 @@ func TestOrchestrator_ExecuteWorkflow_WithVariables(t *testing.T) {
 	}
 
 	if result.WorkflowResult == nil {
-		t.Error("Expected workflow result")
+		t.Fatal("Expected workflow result")
 	}
 
 	if result.WorkflowResult.Status != types.WorkflowSuccess {
@@ -356,7 +356,7 @@ func TestOrchestrator_ExecuteWorkflow_WithVariables(t *testing.T) {
 
 	taskResult := result.WorkflowResult.Tasks["task1"]
 	if taskResult == nil {
-		t.Error("Expected task1 result")
+		t.Fatal("Expected task1 result")
 	}
 
 	if taskResult.Status != types.TaskSuccess {
@@ -395,7 +395,7 @@ func TestOrchestrator_ExecuteWorkflow_WithEnvironment(t *testing.T) {
 	}
 
 	if result.WorkflowResult == nil {
-		t.Error("Expected workflow result")
+		t.Fatal("Expected workflow result")
 	}
 
 	if result.WorkflowResult.Status != types.WorkflowSuccess {
@@ -438,7 +438,7 @@ func TestOrchestrator_GetExecutionPlan(t *testing.T) {
 	}
 
 	if plan == nil {
-		t.Error("Expected execution plan")
+		t.Fatal("Expected execution plan")
 	}
 
 	if plan.Workflow != workflow {
@@ -600,13 +600,13 @@ func TestOrchestrator_ExecuteWorkflow_Timeout(t *testing.T) {
 	}
 
 	if result.WorkflowResult == nil {
-		t.Error("Expected workflow result")
+		t.Fatal("Expected workflow result")
 	}
 
 	// Task should have failed due to timeout
 	taskResult := result.WorkflowResult.Tasks["task1"]
 	if taskResult == nil {
-		t.Error("Expected task1 result")
+		t.Fatal("Expected task1 result")
 	}
 
 	if taskResult.Status != types.TaskFailed {

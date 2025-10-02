@@ -86,7 +86,7 @@ func New(config *Config) (*Orchestrator, error) {
 	}
 
 	// Register all tasks to executor
-	taskRegistry.RegisterToExecutor(exec)
+	_ = taskRegistry.RegisterToExecutor(exec)
 
 	// Initialize import resolver
 	parserInstance := parser.New(afero.NewOsFs())
@@ -98,7 +98,7 @@ func New(config *Config) (*Orchestrator, error) {
 
 	// Initialize history store
 	historyStore := history.New(config.HistoryDir, 10000) // Keep up to 10k records
-	historyStore.Initialize()                             // Create directory if needed
+	_ = historyStore.Initialize()                         // Create directory if needed
 
 	return &Orchestrator{
 		parser:         parserInstance,

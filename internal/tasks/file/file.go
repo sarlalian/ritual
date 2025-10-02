@@ -420,7 +420,7 @@ func (e *Executor) handleTouch(path string, info os.FileInfo, exists bool, confi
 			result.Message = fmt.Sprintf("Failed to create file: %v", err)
 			return result
 		}
-		file.Close()
+		_ = file.Close()
 
 		result.Status = types.TaskSuccess
 		result.Message = "File created successfully"
@@ -471,7 +471,7 @@ func (e *Executor) handleFile(path string, info os.FileInfo, exists bool, config
 		exists = false
 	}
 
-	var needsUpdate bool = !exists
+	needsUpdate := !exists
 
 	// Check if content needs updating
 	if exists && (config.Content != "" || config.Source != "") {
@@ -531,7 +531,7 @@ func (e *Executor) handleFile(path string, info os.FileInfo, exists bool, config
 				result.Message = fmt.Sprintf("Failed to create file: %v", err)
 				return result
 			}
-			file.Close()
+			_ = file.Close()
 		}
 
 		result.Output["changed"] = true
@@ -594,13 +594,13 @@ func (e *Executor) copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer sourceFile.Close()
+	defer func() { _ = sourceFile.Close() }()
 
 	destFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer destFile.Close()
+	defer func() { _ = destFile.Close() }()
 
 	_, err = io.Copy(destFile, sourceFile)
 	if err != nil {

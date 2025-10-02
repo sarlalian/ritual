@@ -292,7 +292,7 @@ tasks:
 	if _, err := os.Stat("/tmp/ritual-dry-run-test-file"); !os.IsNotExist(err) {
 		t.Error("File should not have been created in dry-run mode")
 		// Clean up if it somehow was created
-		os.Remove("/tmp/ritual-dry-run-test-file")
+		_ = os.Remove("/tmp/ritual-dry-run-test-file")
 	}
 }
 

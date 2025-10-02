@@ -323,16 +323,12 @@ func (r *DependencyResolver) ValidateGraph() error {
 		finalLayer = len(r.layers) - 1
 	}
 
-	orphanedTasks := make([]string, 0)
 	for _, node := range r.nodes {
 		if len(node.Dependents) == 0 && node.Layer != finalLayer && node.Layer != -1 {
-			orphanedTasks = append(orphanedTasks, node.Task.ID)
+			// This is just a warning, not an error
+			// Could be logged if we had access to logger here
+			_ = node // Orphaned task detected but not an error
 		}
-	}
-
-	if len(orphanedTasks) > 0 {
-		// This is just a warning, not an error
-		// Could be logged if we had access to logger here
 	}
 
 	// Check for unreachable tasks (should not happen with our algorithm)

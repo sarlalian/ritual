@@ -3,13 +3,16 @@ description: MySQL Automated Backup System
 version: "1.0"
 
 environment:
-  DATABASE: "hgetest"
-  NOTIFICATION_EMAIL: "wfife@nsgmail.com"
+  DATABASE: "test"
+  NOTIFICATION_EMAIL: "user@example.com"
   BACKUP_ROOT: "/tmp/backups"
   MYSQL_ROOT: "root"
   MYSQL_ROOT_PASS: "root"
 
 vars:
+  aws_region: us-east-1
+  sender_email: user@example.com
+  recipient_email: user@example.com
   backup_date: "{{ now | date \"2006-01-02\" }}"
   backup_time: "{{ now | date \"15-04-05\" }}"
   backup_name: "{{ .env.DATABASE }}-{{ .vars.backup_date }}"
@@ -85,13 +88,15 @@ tasks:
     output: "{{ .vars.backup_dir }}/{{ .env.DATABASE }}-{{ .vars.backup_name }}.sql.tar.gz.sha256"
     depends_on: [compress_database]
 
-  # Generate backup report
   - id: generate_report
-    name: Generate Backup Report
-    type: file
-    path: "{{ .vars.backup_dir }}/REPORT.txt"
-    state: file
-    content: |
+    name: Daily Database Backup Report
+    type: ses
+    region: "{{ .vars.aws_region }}"
+    from: "{{ .vars.sender_email }}"
+    to:
+      - "{{ .vars.recipient_email }}"
+    subject: "Simple Text Email from Ritual"
+    body: |
       BACKUP REPORT
       =============
 
@@ -118,8 +123,6 @@ tasks:
       - Check individual task logs
       - Manual intervention may be required
       {{- end }}
-    mode: "0644"
-    depends_on: [compress_database, checksum_backup]
 
   # Final status notification
   - id: status_notification

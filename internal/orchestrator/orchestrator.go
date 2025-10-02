@@ -13,6 +13,7 @@ import (
 
 	contextManager "github.com/sarlalian/ritual/internal/context"
 	"github.com/sarlalian/ritual/internal/executor"
+	"github.com/sarlalian/ritual/internal/filesystem"
 	"github.com/sarlalian/ritual/internal/history"
 	"github.com/sarlalian/ritual/internal/tasks"
 	"github.com/sarlalian/ritual/internal/template"
@@ -96,9 +97,13 @@ func New(config *Config) (*Orchestrator, error) {
 		MaxDepth:   10,
 	})
 
-	// Initialize history store
-	historyStore := history.New(config.HistoryDir, 10000) // Keep up to 10k records
-	_ = historyStore.Initialize()                         // Create directory if needed
+	// Initialize history store with filesystem
+	historyFS, historyPath, err := createHistoryFilesystem(config.HistoryDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create history filesystem: %w", err)
+	}
+	historyStore := history.New(historyFS, historyPath, 10000) // Keep up to 10k records
+	_ = historyStore.Initialize()                              // Create directory if needed
 
 	return &Orchestrator{
 		parser:         parserInstance,
@@ -413,4 +418,27 @@ func (o *Orchestrator) logWorkflowSummary(result *types.WorkflowResult) {
 			}
 		}
 	}
+}
+
+// createHistoryFilesystem creates an appropriate filesystem for the history directory
+// Supports local paths, S3 URIs, SSH/SFTP URIs, and HTTP(S) URIs
+func createHistoryFilesystem(historyDir string) (afero.Fs, string, error) {
+	// Parse the history directory path/URI
+	fsInfo, err := filesystem.ParsePath(historyDir)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to parse history directory path: %w", err)
+	}
+
+	// For local filesystem, use default
+	if fsInfo.Scheme == "" || fsInfo.Scheme == "file" {
+		return afero.NewOsFs(), fsInfo.Path, nil
+	}
+
+	// Create filesystem based on scheme
+	fs, err := filesystem.GetFilesystem(historyDir, &filesystem.Config{})
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to create filesystem for history: %w", err)
+	}
+
+	return fs, fsInfo.Path, nil
 }

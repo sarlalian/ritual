@@ -58,6 +58,7 @@ func dryRunWorkflow(cmd *cobra.Command, args []string) error {
 		MaxConcurrency: 10,
 		Logger:         logger,
 		Verbose:        verboseMode,
+		HistoryDir:     historyDir,
 	}
 
 	// Create orchestrator

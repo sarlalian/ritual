@@ -56,6 +56,7 @@ func runWorkflow(cmd *cobra.Command, args []string) error {
 		MaxConcurrency: 10, // TODO: Make this configurable via flag
 		Logger:         logger,
 		Verbose:        verboseMode,
+		HistoryDir:     historyDir,
 	}
 
 	// Create orchestrator

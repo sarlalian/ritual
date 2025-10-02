@@ -6,17 +6,19 @@ package history
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/spf13/afero"
 
 	"github.com/sarlalian/ritual/pkg/types"
 )
 
 // Store handles persistent storage of workflow execution history
 type Store struct {
+	fs         afero.Fs
 	dataDir    string
 	maxEntries int
 }
@@ -81,12 +83,13 @@ type HistoryStats struct {
 }
 
 // New creates a new execution history store
-func New(dataDir string, maxEntries int) *Store {
+func New(fs afero.Fs, dataDir string, maxEntries int) *Store {
 	if maxEntries <= 0 {
 		maxEntries = 1000 // Default limit
 	}
 
 	return &Store{
+		fs:         fs,
 		dataDir:    dataDir,
 		maxEntries: maxEntries,
 	}
@@ -94,7 +97,7 @@ func New(dataDir string, maxEntries int) *Store {
 
 // Initialize creates the data directory if it doesn't exist
 func (s *Store) Initialize() error {
-	if err := os.MkdirAll(s.dataDir, 0755); err != nil {
+	if err := s.fs.MkdirAll(s.dataDir, 0755); err != nil {
 		return fmt.Errorf("failed to create history data directory: %w", err)
 	}
 	return nil
@@ -164,7 +167,7 @@ func (s *Store) storeRecord(record *ExecutionRecord) error {
 	}
 
 	// Write to file
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
+	if err := afero.WriteFile(s.fs, filePath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write execution record: %w", err)
 	}
 
@@ -174,7 +177,7 @@ func (s *Store) storeRecord(record *ExecutionRecord) error {
 
 // cleanupOldEntries removes old execution records to maintain the max entries limit
 func (s *Store) cleanupOldEntries() error {
-	entries, err := os.ReadDir(s.dataDir)
+	entries, err := afero.ReadDir(s.fs, s.dataDir)
 	if err != nil {
 		return fmt.Errorf("failed to read history directory: %w", err)
 	}
@@ -198,7 +201,7 @@ func (s *Store) cleanupOldEntries() error {
 	excessCount := len(jsonFiles) - s.maxEntries
 	for i := 0; i < excessCount; i++ {
 		filePath := filepath.Join(s.dataDir, jsonFiles[i])
-		if err := os.Remove(filePath); err != nil {
+		if err := s.fs.Remove(filePath); err != nil {
 			return fmt.Errorf("failed to remove old execution record: %w", err)
 		}
 	}
@@ -209,7 +212,7 @@ func (s *Store) cleanupOldEntries() error {
 // GetExecution retrieves a specific execution record by ID
 func (s *Store) GetExecution(executionID string) (*ExecutionRecord, error) {
 	// Find the file containing this execution ID
-	entries, err := os.ReadDir(s.dataDir)
+	entries, err := afero.ReadDir(s.fs, s.dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read history directory: %w", err)
 	}
@@ -226,7 +229,7 @@ func (s *Store) GetExecution(executionID string) (*ExecutionRecord, error) {
 
 // loadRecord loads an execution record from a file
 func (s *Store) loadRecord(filePath string) (*ExecutionRecord, error) {
-	data, err := os.ReadFile(filePath)
+	data, err := afero.ReadFile(s.fs, filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read execution record: %w", err)
 	}
@@ -241,7 +244,7 @@ func (s *Store) loadRecord(filePath string) (*ExecutionRecord, error) {
 
 // QueryExecutions retrieves execution records based on query options
 func (s *Store) QueryExecutions(options *QueryOptions) ([]*ExecutionSummary, error) {
-	entries, err := os.ReadDir(s.dataDir)
+	entries, err := afero.ReadDir(s.fs, s.dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read history directory: %w", err)
 	}
@@ -343,7 +346,7 @@ func (s *Store) createSummary(record *ExecutionRecord) *ExecutionSummary {
 
 // GetStats calculates statistics about execution history
 func (s *Store) GetStats() (*HistoryStats, error) {
-	entries, err := os.ReadDir(s.dataDir)
+	entries, err := afero.ReadDir(s.fs, s.dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read history directory: %w", err)
 	}
@@ -423,7 +426,7 @@ func (s *Store) GetStats() (*HistoryStats, error) {
 // CleanupOld removes execution records older than the specified duration
 func (s *Store) CleanupOld(olderThan time.Duration) (int, error) {
 	cutoff := time.Now().Add(-olderThan)
-	entries, err := os.ReadDir(s.dataDir)
+	entries, err := afero.ReadDir(s.fs, s.dataDir)
 	if err != nil {
 		return 0, fmt.Errorf("failed to read history directory: %w", err)
 	}
@@ -441,7 +444,7 @@ func (s *Store) CleanupOld(olderThan time.Duration) (int, error) {
 		}
 
 		if record.StartTime.Before(cutoff) {
-			if err := os.Remove(filePath); err != nil {
+			if err := s.fs.Remove(filePath); err != nil {
 				return removedCount, fmt.Errorf("failed to remove old record: %w", err)
 			}
 			removedCount++
@@ -463,7 +466,7 @@ func (s *Store) ExportExecutions(outputPath string, options *QueryOptions) error
 		return fmt.Errorf("failed to marshal export data: %w", err)
 	}
 
-	if err := os.WriteFile(outputPath, data, 0644); err != nil {
+	if err := afero.WriteFile(s.fs, outputPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write export file: %w", err)
 	}
 

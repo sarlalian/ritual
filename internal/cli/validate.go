@@ -45,6 +45,7 @@ func validateWorkflow(cmd *cobra.Command, args []string) error {
 		MaxConcurrency: 10,
 		Logger:         logger,
 		Verbose:        verboseMode,
+		HistoryDir:     historyDir,
 	}
 	orch, err := orchestrator.New(orchConfig)
 	if err != nil {

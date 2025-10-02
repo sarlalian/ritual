@@ -18,6 +18,7 @@ var (
 	verboseMode bool
 	quietMode   bool
 	format      string
+	historyDir  string
 	logger      types.Logger
 )
 
@@ -60,11 +61,13 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verboseMode, "verbose", "v", false, "enable verbose output")
 	rootCmd.PersistentFlags().BoolVarP(&quietMode, "quiet", "q", false, "enable quiet mode (only errors)")
 	rootCmd.PersistentFlags().StringVar(&format, "format", "text", "output format (text, json)")
+	rootCmd.PersistentFlags().StringVar(&historyDir, "history-dir", "./history", "history storage location (local path, s3://, sftp://, etc.)")
 
 	// Bind flags to viper
 	_ = viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 	_ = viper.BindPFlag("quiet", rootCmd.PersistentFlags().Lookup("quiet"))
 	_ = viper.BindPFlag("format", rootCmd.PersistentFlags().Lookup("format"))
+	_ = viper.BindPFlag("history-dir", rootCmd.PersistentFlags().Lookup("history-dir"))
 }
 
 // initConfig reads in config file and ENV variables if set.

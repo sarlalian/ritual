@@ -87,8 +87,8 @@ This document provides a comprehensive architectural overview of the Ritual work
 │  2. Coordinate workflow execution                           │
 └────┬──────┬──────┬───────┬───────┬───────┬──────────────────┘
      │      │      │       │       │       │
-     │      │      │       │       │       └──────┐
-     ▼      ▼      ▼       ▼       ▼              ▼
+     │      │      │       │       │       └─────┐
+     ▼      ▼      ▼       ▼       ▼             ▼
   Parser  Resolver Context Template Task      History
            (DAG)   Manager Engine  Registry   Store
      │      │       │       │       │            │
@@ -129,7 +129,7 @@ The CLI system provides the command-line interface using Cobra framework.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    CLI ARCHITECTURE                          │
+│                    CLI ARCHITECTURE                         │
 └─────────────────────────────────────────────────────────────┘
 
           ┌──────────────┐
@@ -137,9 +137,9 @@ The CLI system provides the command-line interface using Cobra framework.
           │  "ritual"    │
           └──────┬───────┘
                  │
-    ┌────────────┼────────────┬────────────┬──────────────┐
-    │            │            │            │              │
-    ▼            ▼            ▼            ▼              ▼
+    ┌────────────┼────────────┬────────────┬────────────┐
+    │            │            │            │            │
+    ▼            ▼            ▼            ▼            ▼
 ┌────────┐  ┌────────┐  ┌─────────┐  ┌────────┐    ┌─────────┐
 │  run   │  │dry-run │  │validate │  │ serve  │    │  watch  │
 └───┬────┘  └───┬────┘  └────┬────┘  └───┬────┘    └────┬────┘
@@ -172,7 +172,7 @@ The Orchestrator is the central coordinator that integrates all components.
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                    ORCHESTRATOR INTERNALS                         │
+│                    ORCHESTRATOR INTERNALS                        │
 └──────────────────────────────────────────────────────────────────┘
 
                     ┌───────────────────┐
@@ -191,14 +191,14 @@ The Orchestrator is the central coordinator that integrates all components.
              │                │              │
              │                │              │
       ┌──────┴────────────────┴──────────────┴──────┐
-      │                                              │
-      ▼                                              ▼
+      │                                             │
+      ▼                                             ▼
 ┌──────────────┐                            ┌───────────────┐
 │   Context    │◄───────────────────────────│  Task Results │
 │   Manager    │                            │   Collection  │
 └──────────────┘                            └───────────────┘
-      │                                              │
-      ▼                                              ▼
+      │                                             │
+      ▼                                             ▼
 ┌──────────────────────────────────────────────────────────┐
 │                  Template Engine                         │
 │  Variables, Results, Workflow Data → Rendered Templates  │
@@ -218,16 +218,16 @@ The Executor manages task execution with parallel and sequential modes.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                  EXECUTOR ARCHITECTURE                        │
+│                  EXECUTOR ARCHITECTURE                       │
 └──────────────────────────────────────────────────────────────┘
 
                     ┌──────────────┐
                     │   Executor   │
                     └──────┬───────┘
                            │
-        ┌──────────────────┼──────────────────┐
-        │                  │                  │
-        ▼                  ▼                  ▼
+       ┌───────────────────┼─────────────────┐
+       │                   │                 │
+       ▼                   ▼                 ▼
 ┌──────────────┐   ┌──────────────┐   ┌─────────────┐
 │ Task Registry│   │   Context    │   │   Config    │
 │  (Type Map)  │   │   Manager    │   │  (DryRun,   │
@@ -306,7 +306,7 @@ Input: []TaskConfig with DependsOn fields
                    │
                    ▼
         ┌─────────────────────┐
-        │   Dependency Graph   │
+        │   Dependency Graph  │
         │                     │
         │   Task A (InDeg=0)  │
         │      ↓              │
@@ -434,7 +434,7 @@ Central registry for all available task types.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│               TASK REGISTRY ARCHITECTURE                  │
+│               TASK REGISTRY ARCHITECTURE                 │
 └──────────────────────────────────────────────────────────┘
 
             ┌─────────────────────┐
@@ -501,7 +501,7 @@ Creates Afero filesystems for different storage backends.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│              FILESYSTEM FACTORY ARCHITECTURE                  │
+│              FILESYSTEM FACTORY ARCHITECTURE                 │
 └──────────────────────────────────────────────────────────────┘
 
 Input: URI/Path String
@@ -564,7 +564,7 @@ Renders Go templates with Sprig functions.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│            TEMPLATE ENGINE ARCHITECTURE                   │
+│            TEMPLATE ENGINE ARCHITECTURE                  │
 └──────────────────────────────────────────────────────────┘
 
                 ┌─────────────────┐
@@ -622,7 +622,7 @@ Resolves and loads workflow imports from multiple sources.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│            IMPORT RESOLVER ARCHITECTURE                   │
+│            IMPORT RESOLVER ARCHITECTURE                  │
 └──────────────────────────────────────────────────────────┘
 
 Workflow with imports:
@@ -679,7 +679,7 @@ Multiple event sources can trigger workflow execution.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                EVENT SYSTEM ARCHITECTURE                      │
+│                EVENT SYSTEM ARCHITECTURE                     │
 └──────────────────────────────────────────────────────────────┘
 
 Event Sources:
@@ -758,7 +758,7 @@ Pub/Sub Flow:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│              COMPLETE EXECUTION FLOW                          │
+│              COMPLETE EXECUTION FLOW                         │
 └──────────────────────────────────────────────────────────────┘
 
  1. User Input
@@ -865,7 +865,7 @@ Error Handling:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                  DATA FLOW DIAGRAM                            │
+│                  DATA FLOW DIAGRAM                           │
 └──────────────────────────────────────────────────────────────┘
 
 Workflow Variables → Context Manager
@@ -935,7 +935,7 @@ Example:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│           FILESYSTEM DATA FLOW                                │
+│           FILESYSTEM DATA FLOW                               │
 └──────────────────────────────────────────────────────────────┘
 
 Task Config:

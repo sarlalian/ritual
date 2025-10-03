@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -153,9 +154,13 @@ func (s *Store) RecordExecution(result *types.Result, workflowName, workflowPath
 
 // storeRecord saves an execution record to disk
 func (s *Store) storeRecord(record *ExecutionRecord) error {
-	// Create filename with timestamp and ID
-	filename := fmt.Sprintf("%s_%s.json",
+	// Normalize workflow name for filename
+	normalizedName := normalizeWorkflowName(record.WorkflowName)
+
+	// Create filename with timestamp, normalized workflow name, and ID
+	filename := fmt.Sprintf("%s_%s_%s.json",
 		record.StartTime.Format("20060102_150405"),
+		normalizedName,
 		record.ID)
 
 	filePath := filepath.Join(s.dataDir, filename)
@@ -471,4 +476,59 @@ func (s *Store) ExportExecutions(outputPath string, options *QueryOptions) error
 	}
 
 	return nil
+}
+
+// normalizeWorkflowName converts a workflow name to a filesystem-safe format
+// - Converts to lowercase
+// - Replaces whitespace with underscores
+// - Removes special characters (keeps only alphanumeric, underscore, hyphen)
+// - Collapses multiple underscores to single underscore
+// - Trims underscores from start and end
+func normalizeWorkflowName(name string) string {
+	if name == "" {
+		return "unnamed"
+	}
+
+	// Convert to lowercase
+	normalized := strings.ToLower(name)
+
+	// Replace whitespace (spaces, tabs, newlines) with underscores
+	normalized = regexp.MustCompile(`\s+`).ReplaceAllString(normalized, "_")
+
+	// Remove special characters - keep only alphanumeric, underscore, and hyphen
+	normalized = regexp.MustCompile(`[^a-z0-9_-]+`).ReplaceAllString(normalized, "")
+
+	// Collapse multiple underscores to single underscore
+	normalized = regexp.MustCompile(`_+`).ReplaceAllString(normalized, "_")
+
+	// Collapse multiple hyphens to single hyphen
+	normalized = regexp.MustCompile(`-+`).ReplaceAllString(normalized, "-")
+
+	// Collapse mixed separators (e.g., "-_-" to "-")
+	normalized = regexp.MustCompile(`[-_]+`).ReplaceAllStringFunc(normalized, func(match string) string {
+		if strings.Contains(match, "_") && strings.Contains(match, "-") {
+			return "-"
+		}
+		if strings.Contains(match, "_") {
+			return "_"
+		}
+		return "-"
+	})
+
+	// Trim underscores and hyphens from start and end
+	normalized = strings.Trim(normalized, "_-")
+
+	// If after normalization we have an empty string, use a default
+	if normalized == "" {
+		return "unnamed"
+	}
+
+	// Limit length to avoid filesystem issues
+	if len(normalized) > 50 {
+		normalized = normalized[:50]
+		// Trim any trailing separators after truncation
+		normalized = strings.TrimRight(normalized, "_-")
+	}
+
+	return normalized
 }
